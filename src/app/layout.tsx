@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { PostHogPageview } from "@/components/PostHogPageview";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${jbmono.variable} h-full`}
     >
       <body className="min-h-full bg-bg text-fg bg-grain relative">
+        <PostHogPageview />
         {children}
       </body>
     </html>

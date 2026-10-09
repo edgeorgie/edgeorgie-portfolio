@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import posthog from "posthog-js";
 import { Reveal } from "./Reveal";
 
 const MCP_CONFIG = `{
@@ -95,6 +96,14 @@ export function AskMe() {
     if (trimmed.length < 3 || loading) return;
     setLoading(true);
     setError(null);
+    // Real product event: a visitor asked the embedded agent something.
+    // This is the single most meaningful interaction on the site, so it's
+    // the one custom event tracked here (no vanity click-tracking).
+    posthog.capture("ask_me_question_submitted", {
+      question_length: trimmed.length,
+      question_preview: trimmed.slice(0, 80),
+      is_suggestion: SUGGESTIONS.includes(trimmed),
+    });
     try {
       const res = await fetch("/api/ask-me", {
         method: "POST",
@@ -104,8 +113,15 @@ export function AskMe() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong.");
       setHistory((h) => [...h, { q: trimmed, a: data, streamed: false }]);
+      posthog.capture("ask_me_answer_received", {
+        answer_mode: data.answerMode,
+        citation_count: data.citations?.length ?? 0,
+      });
     } catch (err) {
       setError((err as Error).message);
+      posthog.capture("ask_me_answer_failed", {
+        error: (err as Error).message,
+      });
     } finally {
       setLoading(false);
     }

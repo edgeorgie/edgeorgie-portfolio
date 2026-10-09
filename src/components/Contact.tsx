@@ -45,7 +45,17 @@ export function Contact() {
           Barranquilla, Colombia — remote
         </p>
         <p className="mono text-xs text-fg-dim">
-          Built with Next.js + Framer Motion. Deployed on Vercel.
+          Built with Next.js + Framer Motion. Deployed on Vercel. Analytics
+          on this site run on{" "}
+          <a
+            href="https://posthog.com"
+            target="_blank"
+            rel="noreferrer"
+            className="underline-link text-fg"
+          >
+            PostHog
+          </a>{" "}
+          — the same product this application is for.
         </p>
       </footer>
     </section>
