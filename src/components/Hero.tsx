@@ -78,12 +78,12 @@ export function Hero() {
             See the work →
           </a>
           <a
-            href="https://repoask-mcp.vercel.app"
+            href="https://ask-edgeorgie-mcp.vercel.app"
             target="_blank"
             rel="noreferrer"
             className="mono text-sm border border-[var(--line)] px-6 py-3 rounded-full hover:border-accent hover:text-accent transition-colors"
           >
-            Live MCP server ↗
+            Ask an agent about me ↗
           </a>
         </motion.div>
       </div>

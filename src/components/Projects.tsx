@@ -13,11 +13,12 @@ export function Projects() {
             01 · Shipped
           </p>
           <h2 className="text-4xl md:text-6xl font-semibold tracking-tight max-w-3xl">
-            Three real artifacts. Agents actually invoke them.
+            Four real artifacts. Agents actually invoke them.
           </h2>
           <p className="mt-5 text-fg-dim max-w-xl text-lg">
-            Not UI demos — a webhook-triggered bot, a CI gate, and a publicly
-            deployed MCP server. Every number below is pulled from a real run.
+            Not UI demos — an MCP server you can query about me, a
+            webhook-triggered bot, a CI gate, and a publicly deployed
+            repo-Q&A server. Every number below is pulled from a real run.
           </p>
         </Reveal>
 

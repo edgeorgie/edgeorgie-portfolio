@@ -10,6 +10,24 @@ export type Project = {
 
 export const projects: Project[] = [
   {
+    slug: "ask-edgeorgie-mcp",
+    name: "ask-edgeorgie-mcp",
+    tagline: "Don't take my word for it — ask an agent directly.",
+    description:
+      "A live MCP server about ME, not a repo. get_experience / get_projects / ask_about_edgeorgie, backed by TF-IDF retrieval with exact file+line citations over my real resume, case studies, and reliability reports — no LLM, no invented answers, deterministic citation dumps only. Verified by a real @modelcontextprotocol/sdk client over Streamable HTTP against the live deployed URL, not a local stdio demo.",
+    stats: [
+      { label: "Status", value: "Live, public, no auth wall" },
+      { label: "Verified by", value: "real external MCP client (HTTP)" },
+      { label: "Local tests", value: "5/5 passing" },
+      { label: "Transport", value: "Streamable HTTP + stdio" },
+    ],
+    links: [
+      { label: "GitHub", href: "https://github.com/edgeorgie/ask-edgeorgie-mcp" },
+      { label: "Ask me live", href: "https://ask-edgeorgie-mcp.vercel.app" },
+    ],
+    stack: ["TypeScript", "MCP SDK", "Vercel", "TF-IDF retrieval"],
+  },
+  {
     slug: "triage-desk",
     name: "triage-desk",
     tagline: "A GitHub bot that triages issues on its own — no human click.",
