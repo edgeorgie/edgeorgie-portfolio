@@ -12,8 +12,8 @@ export default function Home() {
       <Nav />
       <main className="relative z-0">
         <Hero />
-        <Projects />
         <AskMe />
+        <Projects />
         <Experience />
         <LiveStats />
         <Contact />

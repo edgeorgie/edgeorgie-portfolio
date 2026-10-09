@@ -6,6 +6,29 @@ export type Project = {
   stats: { label: string; value: string }[];
   links: { label: string; href: string }[];
   stack: string[];
+  demo?:
+    | {
+        kind: "triage";
+        issueTitle: string;
+        issueBody: string;
+        result: { kind: string; priority: string; labels: string[]; confidence: number };
+        sourceLabel: string;
+        sourceHref: string;
+      }
+    | {
+        kind: "benchmark";
+        rows: number;
+        cols: number;
+        passed: number;
+        total: number;
+        runLabel: string;
+        runHref: string;
+        asOf: string;
+      }
+    | {
+        kind: "mcp-badge";
+        tools: string[];
+      };
 };
 
 export const projects: Project[] = [
@@ -26,6 +49,7 @@ export const projects: Project[] = [
       { label: "Ask me live", href: "https://ask-edgeorgie-mcp.vercel.app" },
     ],
     stack: ["TypeScript", "MCP SDK", "Vercel", "TF-IDF retrieval"],
+    demo: { kind: "mcp-badge", tools: ["get_experience", "get_projects", "ask_about_edgeorgie"] },
   },
   {
     slug: "triage-desk",
@@ -51,6 +75,14 @@ export const projects: Project[] = [
       },
     ],
     stack: ["TypeScript", "GitHub Actions", "Octokit", "Node.js"],
+    demo: {
+      kind: "triage",
+      issueTitle: "Bug: duplicate detection crashes on empty issue body",
+      issueBody: "Opening an issue with no body text throws inside the dedup step before labels get applied.",
+      result: { kind: "bug", priority: "p0", labels: ["bug", "p0"], confidence: 0.4 },
+      sourceLabel: "real run · issue #24",
+      sourceHref: "https://github.com/edgeorgie/triage-desk/actions/runs/37983913473",
+    },
   },
   {
     slug: "eval-lab",
@@ -76,6 +108,16 @@ export const projects: Project[] = [
       },
     ],
     stack: ["Node.js ESM", "GitHub Actions", "CLI"],
+    demo: {
+      kind: "benchmark",
+      rows: 4,
+      cols: 6,
+      passed: 24,
+      total: 24,
+      runLabel: "benchmark run · 3 passes",
+      runHref: "https://github.com/edgeorgie/eval-lab/actions/runs/37983754854",
+      asOf: "point-in-time result from the linked CI run, not a live feed",
+    },
   },
   {
     slug: "repoask-mcp",
