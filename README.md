@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# edgeorgie-portfolio
 
-## Getting Started
+Personal portfolio site for Edwin Jorge (edgeorgie) — software engineer at Mercado Libre.
 
-First, run the development server:
+Live: https://edgeorgie-portfolio.vercel.app
+
+## Stack
+
+- Next.js 16 (App Router, Turbopack)
+- TypeScript
+- Tailwind CSS v4
+- Framer Motion (scroll-triggered reveals, micro-interactions)
+- Deployed on Vercel
+
+## What's on it
+
+- **Hero** — positioning line, rotating role ticker.
+- **Projects** — the 3 real shipped agent-native artifacts (triage-desk, eval-lab,
+  repoask-mcp), each with real stats (accuracy, pass rate, latency) pulled from their
+  own repos' committed benchmark files, and real links to repos/PRs/Actions runs.
+- **Experience** — Mercado Libre, Vansa, Freelance, sourced from the real resume only.
+- **Live GitHub stats** (`/api/github-stats`) — server route that calls the GitHub REST
+  API at request time for the 3 project repos (stars, last-pushed timestamp), proving
+  the site is wired to live data, not a static snapshot.
+- **Contact** — email + GitHub.
+
+No invented metrics anywhere — every number traces back to a committed BENCHMARKS.md /
+ACCURACY.md / real Actions run in the respective project repo.
+
+## Local dev
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Note: if your shell has a global `NODE_ENV=production`, `npm install` will silently skip
+devDependencies (including `typescript`). Run `unset NODE_ENV` first, or
+`npm install --include=dev`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npx vercel deploy --prod
+```
