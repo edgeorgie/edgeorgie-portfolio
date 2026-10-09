@@ -11,7 +11,7 @@ export function Contact() {
       <div className="max-w-6xl mx-auto px-6 md:px-10">
         <Reveal>
           <p className="mono text-xs text-accent uppercase tracking-widest mb-3">
-            03 · Contact
+            04 · Contact
           </p>
           <h2 className="text-4xl md:text-6xl font-semibold tracking-tight max-w-2xl">
             Want to see more of the work?

@@ -12,7 +12,7 @@ export function Experience() {
       <div className="max-w-6xl mx-auto px-6 md:px-10">
         <Reveal>
           <p className="mono text-xs text-accent uppercase tracking-widest mb-3">
-            02 · Experience
+            03 · Experience
           </p>
           <h2 className="text-4xl md:text-6xl font-semibold tracking-tight max-w-3xl">
             Shipping agent systems at LATAM scale.

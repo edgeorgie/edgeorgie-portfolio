@@ -93,3 +93,47 @@ body {
 .underline-link:hover {
   background-size: 100% 2px;
 }
+
+/* --- polish utilities: glass panels, gradient borders, glow pulses --- */
+.glass-panel {
+  background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.gradient-border {
+  position: relative;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, rgba(186,255,41,0.35), rgba(186,255,41,0) 40%, rgba(186,255,41,0.12) 100%);
+  padding: 1px;
+}
+.gradient-border > * {
+  border-radius: calc(1rem - 1px);
+}
+
+@keyframes caret-blink {
+  0%, 45% { opacity: 1; }
+  50%, 95% { opacity: 0; }
+  100% { opacity: 1; }
+}
+.caret {
+  animation: caret-blink 1s steps(1) infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer-text {
+  background: linear-gradient(90deg, var(--fg-dim) 25%, var(--fg) 50%, var(--fg-dim) 75%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 1.6s linear infinite;
+}
+
+.cmdk-glow {
+  box-shadow: 0 0 0 1px rgba(186,255,41,0.15), 0 8px 40px -12px rgba(186,255,41,0.25);
+}

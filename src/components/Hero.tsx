@@ -10,6 +10,45 @@ const ROLES = [
   "eval-gated CI",
 ];
 
+const TERMINAL_LINES = [
+  "$ curl -X POST ask-edgeorgie-mcp.vercel.app/api/ask",
+  '> { "question": "what has this person shipped?" }',
+  "< citing resume.txt:1-24, progress-log.txt:289-318 …",
+];
+
+function TerminalBoot() {
+  const [lineIdx, setLineIdx] = useState(0);
+  const [charIdx, setCharIdx] = useState(0);
+
+  useEffect(() => {
+    if (lineIdx >= TERMINAL_LINES.length) return;
+    const current = TERMINAL_LINES[lineIdx];
+    if (charIdx < current.length) {
+      const t = setTimeout(() => setCharIdx((c) => c + 1), 18);
+      return () => clearTimeout(t);
+    }
+    const t = setTimeout(() => {
+      setLineIdx((l) => l + 1);
+      setCharIdx(0);
+    }, 420);
+    return () => clearTimeout(t);
+  }, [lineIdx, charIdx]);
+
+  return (
+    <div className="mono text-[11px] md:text-xs text-fg-dim/80 bg-bg-soft border border-[var(--line)] rounded-lg px-4 py-3 w-fit max-w-full overflow-hidden">
+      {TERMINAL_LINES.slice(0, lineIdx).map((l, i) => (
+        <div key={i} className="whitespace-pre">{l}</div>
+      ))}
+      {lineIdx < TERMINAL_LINES.length && (
+        <div className="whitespace-pre">
+          {TERMINAL_LINES[lineIdx].slice(0, charIdx)}
+          <span className="inline-block w-[7px] h-[12px] bg-accent/70 ml-0.5 animate-pulse align-middle" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Hero() {
   const [roleIdx, setRoleIdx] = useState(0);
 
@@ -60,30 +99,37 @@ export function Hero() {
               {ROLES[roleIdx]}
             </span>{" "}
             in production at LATAM e-commerce scale (4.3M+ users). Off the
-            clock, I ship the same thing as side projects — and prove it with
-            real webhook runs, not demos.
+            clock, I ship the same thing as side projects, backed by real
+            webhook runs and a live MCP server you can question right now.
           </p>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.45 }}
-          className="mt-10 flex flex-wrap items-center gap-4"
+          transition={{ duration: 0.7, delay: 0.4 }}
+          className="mt-6"
+        >
+          <TerminalBoot />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.55 }}
+          className="mt-8 flex flex-wrap items-center gap-4"
         >
           <a
-            href="#work"
+            href="#ask-me"
             className="mono text-sm bg-accent text-black px-6 py-3 rounded-full hover:scale-[1.03] transition-transform inline-block"
           >
-            See the work →
+            Ask an agent about me ↓
           </a>
           <a
-            href="https://ask-edgeorgie-mcp.vercel.app"
-            target="_blank"
-            rel="noreferrer"
-            className="mono text-sm border border-[var(--line)] px-6 py-3 rounded-full hover:border-accent hover:text-accent transition-colors"
+            href="#work"
+            className="mono text-sm text-fg-dim hover:text-accent transition-colors"
           >
-            Ask an agent about me ↗
+            See the work →
           </a>
         </motion.div>
       </div>
