@@ -18,10 +18,10 @@ const jbmono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Edwin Jorge — Software Engineer",
   description:
-    "Full-stack software engineer at Mercado Libre, building production web platforms at LATAM e-commerce scale (4.3M+ users) — frontend, backend, cross-platform, and observability. AI-agent systems are a standout specialty: real shipped projects include triage-desk, eval-lab, repoask-mcp, and ask-edgeorgie-mcp.",
+    "Full-stack software engineer at Mercado Libre, building production platforms at LATAM e-commerce scale (4.3M+ users) across web, native Android/iOS, and smart TV/OTT — plus observability and clean architecture. AI-agent systems are a standout specialty: real shipped projects include triage-desk, eval-lab, repoask-mcp, and ask-edgeorgie-mcp.",
   openGraph: {
     title: "Edwin Jorge — Software Engineer",
-    description: "Full-stack software engineer. Production systems at scale, with AI-agent work as a standout specialty.",
+    description: "Full-stack software engineer across web, native mobile, and smart TV/OTT. Production systems at LATAM scale, with AI-agent work as a standout specialty.",
     type: "website",
   },
   metadataBase: new URL("https://edgeorgie.vercel.app"),

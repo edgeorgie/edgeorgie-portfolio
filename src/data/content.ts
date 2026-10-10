@@ -146,13 +146,14 @@ export const experience = [
     period: "November 2022 — Present",
     location: "Remote",
     summary:
-      "LATAM e-commerce platform serving 4.3M+ users. Full-stack and cross-platform engineering — web, mobile, TV — plus observability, clean architecture, and AI-agent workflow design across services.",
+      "LATAM e-commerce platform serving 4.3M+ users. Full-stack engineering across every surface — web, native Android/iOS, and smart TV/OTT — plus observability, clean architecture, and AI-agent workflow design.",
     bullets: [
-      "Led cross-platform initiatives (web, mobile, TV/Samsung/LG) using Spec-Driven Development and scalable frontend architecture.",
+      "Owned 10+ initiatives end-to-end solo (100% individually owned) — 5 directly monetizable, the rest product-improvement — together reaching 4M+ users across LATAM; one shipped feature alone served 1.5M+ users in record time with zero production incidents.",
+      "Led cross-platform initiatives spanning web, mobile WebViews, and AI-assisted native development for Android and iOS, using Spec-Driven Development and scalable frontend architecture.",
+      "Shipped smart TV and OTT surfaces: web receivers for LG, Samsung (Tizen), Vidaa, and TitanOS, plus Chromecast Web Receiver development for video streaming.",
       "Implemented observability and monitoring using Kibana, New Relic, Datadog, and Grafana aligned with SRE practices (SLA/SLI/SLO).",
       "Applied Clean Architecture and Domain-Driven Design while refactoring legacy systems and improving code quality.",
       "Designed AI workflows and agent-based architectures, defining agent rules, skills, and orchestration across services.",
-      "Contributed to OTT video streaming platforms, including Chromecast Web Receiver development.",
     ],
   },
   {
