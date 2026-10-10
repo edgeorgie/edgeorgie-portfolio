@@ -165,6 +165,13 @@ export function AskMe() {
             engine any MCP client would — real TF-IDF retrieval over my résumé,
             case studies, and reliability reports, cited by file and line.
           </p>
+          <p className="mt-3 mono text-xs text-fg-dim/70 max-w-xl">
+            No LLM key is configured on this deployment right now, so answers
+            come back as a direct, cited excerpt dump — not generated prose.
+            Retrieval and citations are real either way; see the{" "}
+            <span className="text-fg-dim">answerMode</span> badge under each
+            reply.
+          </p>
         </Reveal>
 
         <Reveal delay={0.1}>
