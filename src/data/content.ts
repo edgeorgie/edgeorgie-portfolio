@@ -192,53 +192,73 @@ export type Principle = {
   lead: string;
   icon: PrincipleIcon;
   body: string;
+  tapCopy: string;
+  collapseCopy: string;
 };
 
 export const aiWorkflowPrinciples: Principle[] = [
   {
     lead: "Builder vs. operator",
     icon: "split",
-    body: "Claude Code is my \u201cbuilder\u201d \u2014 dispatched in bursts via parallel task delegation, no memory between sessions. A separate always-on layer (Hermes/cron) is the \u201coperator\u201d that runs what Claude Code builds, indefinitely, without needing to be re-explained. That split is the actual leverage move, not the model itself.",
+    body: "Claude Code is my builder: dispatched in bursts via parallel task delegation, with no memory between sessions. A separate always-on layer, Hermes running on cron, acts as the operator, running what Claude Code builds indefinitely without needing to be re-explained. That division between building and operating is where the real leverage comes from.",
+    tapCopy: "see the split",
+    collapseCopy: "hide the split",
   },
   {
-    lead: "Parallel, not serial",
+    lead: "Decompose, then fan out",
     icon: "parallel",
-    body: "Independent workstreams run concurrently as separate delegated tasks, anchored to one shared audit-trail log. I decompose first \u2014 which pieces have no dependency on each other? \u2014 then fire them together so results reconcile instead of silently colliding.",
+    body: "Independent workstreams run concurrently as separate delegated tasks, all anchored to one shared audit-trail log. I map out which pieces have no dependency on each other first, then fire the independent ones together so results reconcile instead of silently colliding.",
+    tapCopy: "see how it fans out",
+    collapseCopy: "collapse the fan-out",
   },
   {
     lead: "Standing skills",
     icon: "skill",
-    body: "Recurring procedures \u2014 cron-gating conventions, verification checklists, approval-gate rules \u2014 live as skills that load on demand, not instructions I retype every session. Write it once correctly, let every future session inherit it.",
+    body: "Recurring procedures, things like cron-gating conventions, verification checklists, and approval-gate rules, live as skills that load on demand instead of instructions I retype every session. I write each one once, carefully, and every future session inherits it.",
+    tapCopy: "see the skill list",
+    collapseCopy: "hide the skill list",
   },
   {
     lead: "Gated cron",
     icon: "gate",
-    body: "Scheduled jobs don't run an expensive agent on a fixed timer. A cheap, deterministic check runs first \u2014 did anything actually change? \u2014 and only wakes the full agent run if yes. Routine runs stay quiet; failures escalate to a real alert.",
+    body: "Scheduled jobs skip running an expensive agent on a fixed timer. A cheap, deterministic check runs first to confirm something actually changed, and only then does the full agent run get woken up. Routine runs stay quiet; failures escalate to a real alert.",
+    tapCopy: "see the gate logic",
+    collapseCopy: "close the gate",
   },
   {
     lead: "Model by stakes",
     icon: "scale",
-    body: "Cheap, fast models handle mechanical, low-stakes, easily-verified work. The strongest available model gets high-stakes work, judged against an explicit rubric \u2014 because \u201ceasy\u201d and \u201ccheap to get wrong\u201d aren't the same question.",
+    body: "Cheap, fast models handle mechanical, low-stakes, easily-verified work. High-stakes work goes to the strongest available model and gets judged against an explicit rubric, since how easy a task looks and how costly it is to get wrong are two different questions.",
+    tapCopy: "see the rubric",
+    collapseCopy: "hide the rubric",
   },
   {
     lead: "Verify, don't trust",
     icon: "check",
-    body: "I don't accept an agent's self-report that something succeeded. I re-check the actual artifact: the live URL, the test run, the real log line. Narrating success and actually succeeding are different claims, and only one is checkable.",
+    body: "An agent's self-report that something succeeded isn't enough for me. I re-check the actual artifact every time: the live URL, the test run, the real log line. Only one of \u201cit worked\u201d and \u201cit says it worked\u201d is something you can actually check.",
+    tapCopy: "see what gets checked",
+    collapseCopy: "hide the checklist",
   },
   {
     lead: "Cold-context critic",
     icon: "critic",
-    body: "Before anything is called finished, a cold review pass \u2014 no shared conversation history, no benefit of the doubt \u2014 checks it, specifically because a reviewer sharing context with the work tends to share its blind spots too.",
+    body: "Before anything is called finished, a cold review pass checks it: no shared conversation history, no benefit of the doubt. A reviewer who shares context with the work usually ends up sharing its blind spots too.",
+    tapCopy: "see the review pass",
+    collapseCopy: "hide the review pass",
   },
   {
     lead: "Security by default",
     icon: "shield",
-    body: "A pre-execution guard intercepts destructive commands before they run. Secrets never get echoed into logs or committed files. Push-time secret scanning runs on everything I ship \u2014 none of it depends on me remembering to be careful.",
+    body: "A pre-execution guard intercepts destructive commands before they run, and secrets never get echoed into logs or committed files. Push-time secret scanning runs on everything I ship, so none of it depends on me remembering to be careful.",
+    tapCopy: "see the guardrails",
+    collapseCopy: "hide the guardrails",
   },
   {
     lead: "Never idle",
     icon: "bolt",
-    body: "If something could be running, it's running \u2014 idle time while one task could be started in parallel is a failure mode I actively correct for.",
+    body: "If something could be running, I start it. Letting one task sit idle while another could be running in parallel counts as a failure mode I actively correct for.",
+    tapCopy: "see why",
+    collapseCopy: "collapse",
   },
 ];
 
