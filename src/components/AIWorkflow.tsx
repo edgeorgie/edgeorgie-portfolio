@@ -156,11 +156,15 @@ function PrincipleTile({
   icon,
   body,
   index,
+  tapCopy,
+  collapseCopy,
 }: {
   lead: string;
   icon: PrincipleIcon;
   body: string;
   index: number;
+  tapCopy: string;
+  collapseCopy: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -203,7 +207,7 @@ function PrincipleTile({
         </AnimatePresence>
 
         <span className="mono text-[10px] text-fg-dim/50 group-hover:text-accent/70 transition-colors mt-auto">
-          {open ? "tap to collapse" : "tap for detail"}
+          {open ? collapseCopy : tapCopy}
         </span>
       </button>
     </Reveal>
@@ -248,12 +252,16 @@ function FlowNode({
   caption,
   tone = "default",
   compact = false,
+  id,
+  onVisit,
 }: {
   icon: IconName;
   title: string;
   caption: string;
   tone?: "default" | "accent" | "dim";
   compact?: boolean;
+  id: string;
+  onVisit?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const borderTone =
@@ -263,7 +271,10 @@ function FlowNode({
     <motion.button
       type="button"
       whileTap={{ scale: 0.97 }}
-      onClick={() => setOpen((o) => !o)}
+      onClick={() => {
+        setOpen((o) => !o);
+        onVisit?.(id);
+      }}
       aria-expanded={open}
       className={`relative flex flex-col items-center justify-center gap-1.5 text-center rounded-xl border bg-bg px-3 ${
         compact ? "py-3 min-w-[84px]" : "py-4 min-w-[140px]"
@@ -299,61 +310,116 @@ function BranchLabel({ children }: { children: React.ReactNode }) {
   return <span className="mono text-[10px] text-fg-dim/70 -mb-0.5">{children}</span>;
 }
 
-const TASKS: { icon: IconName; title: string; caption: string }[] = [
-  { icon: "task", title: "task A", caption: "independent workstream, no shared state" },
-  { icon: "task", title: "task B", caption: "independent workstream, no shared state" },
-  { icon: "task", title: "task C", caption: "routes through the cold-context critic before done" },
-  { icon: "task", title: "task D", caption: "independent workstream, no shared state" },
+const TASKS: { icon: IconName; title: string; caption: string; id: string }[] = [
+  { icon: "task", title: "task A", caption: "independent workstream, no shared state", id: "task-a" },
+  { icon: "task", title: "task B", caption: "independent workstream, no shared state", id: "task-b" },
+  { icon: "task", title: "task C", caption: "routes through the cold-context critic before done", id: "task-c" },
+  { icon: "task", title: "task D", caption: "independent workstream, no shared state", id: "task-d" },
 ];
 
+const ALL_NODE_IDS = [
+  "cron",
+  "gate",
+  "quiet-log",
+  "real-alert",
+  "dispatcher",
+  "guard",
+  ...TASKS.map((t) => t.id),
+  "audit-log",
+  "critic",
+  "done",
+];
+const TOTAL_NODES = ALL_NODE_IDS.length;
+
+/* Fan-out/fan-in connector: draws real lines from "guard" down to each of  */
+/* the 4 task boxes, and from each task box back down to "audit-trail log" */
+/* — instead of relying on prose/proximity to imply the parallel spread.   */
+function FanConnector({ direction }: { direction: "out" | "in" }) {
+  // 4 branches, evenly spaced across the row width, meeting at a single
+  // trunk point at top (fan-out) or bottom (fan-in).
+  const xs = [12.5, 37.5, 62.5, 87.5];
+  return (
+    <svg
+      viewBox="0 0 100 26"
+      preserveAspectRatio="none"
+      className="w-full max-w-[420px] sm:max-w-none h-6 text-fg-dim/70"
+      aria-hidden="true"
+    >
+      {xs.map((x) =>
+        direction === "out" ? (
+          <path key={x} d={`M50 0 C50 10, ${x} 10, ${x} 26`} fill="none" stroke="currentColor" strokeWidth="1" />
+        ) : (
+          <path key={x} d={`M${x} 0 C${x} 16, 50 16, 50 26`} fill="none" stroke="currentColor" strokeWidth="1" />
+        )
+      )}
+    </svg>
+  );
+}
+
 function WorkflowDiagram() {
+  const [visited, setVisited] = useState<Set<string>>(new Set());
+  const markVisited = (id: string) =>
+    setVisited((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+
   return (
     <div
       className="glass-panel rounded-xl p-5 md:p-10 flex flex-col items-center"
       role="img"
       aria-label="Two-layer workflow: a cron scheduler feeds a change-detection gate that routes to either a quiet log or a real alert. Separately, a dispatcher fans out through a pre-execution guard into four parallel tasks that converge on one shared audit-trail log, with one task routing through a cold-context critic before being marked done. Tap any node for detail."
     >
-      <LaneLabel>Operator · always-on</LaneLabel>
-      <FlowNode icon="clock" title="cron scheduler" caption="runs on a fixed schedule" />
+      <div className="w-full flex items-center justify-between mb-5">
+        <LaneLabel>Operator · always-on</LaneLabel>
+        <span className="mono text-[10px] text-fg-dim/60" aria-live="polite">
+          {visited.size} of {TOTAL_NODES} nodes explored
+        </span>
+      </div>
+      <FlowNode id="cron" icon="clock" title="cron scheduler" caption="runs on a fixed schedule" onVisit={markVisited} />
       <Arrow />
-      <FlowNode icon="gate" title="change detected?" caption="cheap, deterministic check — gates the expensive run" tone="accent" />
+      <FlowNode id="gate" icon="gate" title="change detected?" caption="cheap, deterministic check — gates the expensive run" tone="accent" onVisit={markVisited} />
 
       <div className="flex items-start gap-8 mt-1">
         <div className="flex flex-col items-center">
           <BranchLabel>no</BranchLabel>
           <Arrow />
-          <FlowNode icon="file" title="quiet log" caption="routine run, no ping" tone="dim" compact />
+          <FlowNode id="quiet-log" icon="file" title="quiet log" caption="routine run, no ping" tone="dim" compact onVisit={markVisited} />
         </div>
         <div className="flex flex-col items-center">
           <BranchLabel>yes</BranchLabel>
           <Arrow />
-          <FlowNode icon="bell" title="real alert" caption="human-only blocker" tone="accent" compact />
+          <FlowNode id="real-alert" icon="bell" title="real alert" caption="human-only blocker" tone="accent" compact onVisit={markVisited} />
         </div>
       </div>
 
       <div className="my-10 h-px w-16 bg-[var(--line)]" aria-hidden="true" />
 
       <LaneLabel>Builder · bursts</LaneLabel>
-      <FlowNode icon="fork" title="dispatcher" caption="decomposes work into independent pieces" />
+      <FlowNode id="dispatcher" icon="fork" title="dispatcher" caption="decomposes work into independent pieces" onVisit={markVisited} />
       <Arrow dashed />
-      <FlowNode icon="shield" title="guard" caption="pre-execution check, before anything runs" tone="accent" />
-      <Arrow dashed />
+      <FlowNode id="guard" icon="shield" title="guard" caption="pre-execution check, before anything runs" tone="accent" onVisit={markVisited} />
+
+      <FanConnector direction="out" />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full max-w-[420px] sm:max-w-none justify-items-center">
         {TASKS.map((t) => (
-          <FlowNode key={t.title} {...t} compact />
+          <FlowNode key={t.id} {...t} compact onVisit={markVisited} />
         ))}
       </div>
 
-      <Arrow />
-      <FlowNode icon="db" title="audit-trail log" caption="one shared log — every task writes its evidence here" tone="accent" />
+      <FanConnector direction="in" />
+
+      <FlowNode id="audit-log" icon="db" title="audit-trail log" caption="one shared log — every task writes its evidence here" tone="accent" onVisit={markVisited} />
 
       <div className="flex flex-col items-center mt-8 pt-6 border-t border-dashed border-[var(--line)] w-full max-w-[260px]">
         <BranchLabel>task C only, before marked done</BranchLabel>
         <Arrow dashed />
-        <FlowNode icon="critic" title="critic" caption="cold context — zero shared history, no benefit of the doubt" tone="accent" compact />
+        <FlowNode id="critic" icon="critic" title="critic" caption="cold context — zero shared history, no benefit of the doubt" tone="accent" compact onVisit={markVisited} />
         <Arrow dashed />
-        <FlowNode icon="check" title="done" caption="only after the critic pass clears it" compact />
+        <FlowNode id="done" icon="check" title="done" caption="only after the critic pass clears it" compact onVisit={markVisited} />
       </div>
 
       <p className="mono text-[10px] text-fg-dim/60 mt-8 text-center">tap any node to see what it does</p>
@@ -373,9 +439,8 @@ export function AIWorkflow() {
             How I use AI on a daily basis.
           </h2>
           <p className="mt-5 text-fg-dim max-w-xl text-lg">
-            Not a faster autocomplete &mdash; an orchestration layer with its own operating
-            discipline, built the same way I&apos;d build any system I&apos;m accountable
-            for in production.
+            I treat it as an orchestration layer with its own operating discipline, built
+            the same way I&apos;d build any system I&apos;m accountable for in production.
           </p>
         </Reveal>
 
@@ -385,7 +450,15 @@ export function AIWorkflow() {
 
         <div className="mt-16 grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
           {aiWorkflowPrinciples.map((p, i) => (
-            <PrincipleTile key={p.lead} lead={p.lead} icon={p.icon} body={p.body} index={i} />
+            <PrincipleTile
+              key={p.lead}
+              lead={p.lead}
+              icon={p.icon}
+              body={p.body}
+              index={i}
+              tapCopy={p.tapCopy}
+              collapseCopy={p.collapseCopy}
+            />
           ))}
         </div>
       </div>
