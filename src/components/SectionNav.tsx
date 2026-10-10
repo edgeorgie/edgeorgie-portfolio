@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 const SECTIONS = [
   { id: "top", label: "Top" },
@@ -22,6 +22,7 @@ const SECTIONS = [
  */
 export function SectionNav() {
   const [activeId, setActiveId] = useState<string>(SECTIONS[0].id);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     const elements = SECTIONS.map((s) => document.getElementById(s.id)).filter(
@@ -66,21 +67,21 @@ export function SectionNav() {
             key={section.id}
             href={`#${section.id}`}
             aria-label={section.label}
-            aria-current={isActive ? "true" : undefined}
-            className="group relative flex items-center justify-center p-2"
+            aria-current={isActive ? "location" : undefined}
+            className="group relative flex items-center justify-center p-3"
           >
             <motion.span
               animate={{
                 scale: isActive ? 1 : 0.6,
                 opacity: isActive ? 1 : 0.4,
               }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
               className={`block h-2 w-2 rounded-full border border-[var(--line)] ${
                 isActive ? "bg-accent border-accent" : "bg-transparent"
               } group-hover:opacity-100 group-hover:scale-100 transition-colors`}
             />
             <span
-              className="pointer-events-none absolute right-full mr-3 whitespace-nowrap rounded-full border border-[var(--line)] bg-bg/90 px-3 py-1 text-xs mono text-fg-dim opacity-0 backdrop-blur-md transition-opacity group-hover:opacity-100"
+              className="pointer-events-none absolute right-full mr-3 whitespace-nowrap rounded-full border border-[var(--line)] bg-bg/90 px-3 py-1 text-xs mono text-fg-dim opacity-0 backdrop-blur-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
             >
               {section.label}
             </span>
