@@ -54,8 +54,8 @@ export function Contact() {
             className="underline-link text-fg"
           >
             PostHog
-          </a>{" "}
-          — the same product this application is for.
+          </a>
+          .
         </p>
       </footer>
     </section>

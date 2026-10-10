@@ -15,7 +15,7 @@ export function Experience() {
             03 · Experience
           </p>
           <h2 className="text-4xl md:text-6xl font-semibold tracking-tight max-w-3xl">
-            Shipping agent systems at LATAM scale.
+            Production engineering at LATAM scale.
           </h2>
         </Reveal>
 
