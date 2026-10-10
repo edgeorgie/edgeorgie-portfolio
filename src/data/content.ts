@@ -37,7 +37,7 @@ export const projects: Project[] = [
     name: "ask-edgeorgie-mcp",
     tagline: "Don't take my word for it — ask an agent directly.",
     description:
-      "A live MCP server about ME, not a repo. get_experience / get_projects / ask_about_edgeorgie, backed by TF-IDF retrieval with exact file+line citations over my real resume, case studies, and reliability reports — no LLM, no invented answers, deterministic citation dumps only. Verified by a real @modelcontextprotocol/sdk client over Streamable HTTP against the live deployed URL, not a local stdio demo.",
+      "A live MCP server about ME, not a repo. get_experience / get_projects / ask_about_edgeorgie, backed by TF-IDF retrieval with exact file+line citations over my real resume, case studies, and reliability reports. Synthesizes grounded prose with a real model (Claude Haiku) when an LLM key is configured, citing every claim back to a source excerpt — falls back to a deterministic citation dump otherwise, same corpus either way, no invented answers. Scoped and guarded: it only answers questions about me, declines off-topic requests, and resists prompt injection from its own retrieved text. Verified by a real @modelcontextprotocol/sdk client over Streamable HTTP against the live deployed URL, not a local stdio demo.",
     stats: [
       { label: "Status", value: "Live, public, no auth wall" },
       { label: "Verified by", value: "real external MCP client (HTTP)" },
@@ -136,6 +136,41 @@ export const projects: Project[] = [
       { label: "Live MCP endpoint", href: "https://repoask-mcp.vercel.app" },
     ],
     stack: ["TypeScript", "MCP SDK", "Vercel", "Express"],
+  },
+  {
+    slug: "crispy-profiling",
+    name: "crispy-profiling",
+    tagline: "React re-render profiler, published to npm, for humans and agents alike.",
+    description:
+      "A React re-render profiler shipped as four surfaces off one engine: CLI, GitHub Action, MCP server, and an Agent Skill so Claude Code, Cursor, Codex and similar tools can measure a re-render fix instead of guessing at one. Opens the target app in headless Chromium, drives described interactions, and reports which components re-rendered, how many times, and why (props/state/context/parent) — validated against 5 real open-source apps (Redux Essentials, Next.js App Router Playground, Excalidraw, shadcn-admin, react-admin), finding a fixable re-render problem in each.",
+    stats: [
+      { label: "Status", value: "Published on npm" },
+      { label: "Validated against", value: "5 real OSS apps" },
+      { label: "React versions", value: "19 tested, 18.3/19.0 validated" },
+      { label: "Surfaces", value: "CLI + Action + MCP + Agent Skill" },
+    ],
+    links: [
+      { label: "GitHub", href: "https://github.com/edgeorgie/crispy-profiling" },
+      { label: "npm", href: "https://www.npmjs.com/package/crispy-profiling" },
+    ],
+    stack: ["TypeScript", "Playwright/Chromium", "MCP SDK", "GitHub Actions"],
+  },
+  {
+    slug: "simplescope",
+    name: "simplescope",
+    tagline: "Learn algorithms by watching real JavaScript run, not static diagrams.",
+    description:
+      "An interactive, visual, gamified platform for learning algorithms — step through real executing JavaScript instead of reading pseudo-code. Built with Next.js App Router, TypeScript, Tailwind v4, and MDX lessons; fully functional with zero required environment variables (progress falls back to browser localStorage when optional account sync isn't configured).",
+    stats: [
+      { label: "Status", value: "Live, publicly deployed" },
+      { label: "Required env vars", value: "0 — works out of the box" },
+      { label: "Stack", value: "Next.js App Router + TypeScript" },
+    ],
+    links: [
+      { label: "GitHub", href: "https://github.com/edgeorgie/simplescope" },
+      { label: "Live site", href: "https://simplescope-one.vercel.app" },
+    ],
+    stack: ["TypeScript", "Next.js", "Tailwind v4", "shadcn/ui", "MDX"],
   },
 ];
 
