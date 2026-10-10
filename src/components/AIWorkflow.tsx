@@ -1,222 +1,362 @@
 "use client";
 
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Reveal } from "./Reveal";
-import { aiWorkflowPrinciples } from "@/data/content";
+import { aiWorkflowPrinciples, type PrincipleIcon } from "@/data/content";
 
-/**
- * Two-layer swimlane diagram: operator (always-on) vs. builder (bursts).
- *
- * Top lane: cron scheduler -> gate ("change detected?") -> quiet local log
- * or an alert endpoint.
- * Bottom lane: dispatcher fans out (dashed arrows) into parallel task boxes
- * through a pre-execution guard (shield), each task box writes into one
- * shared audit-trail log (cylinder); one task box loops out to a cold-context
- * critic node before being marked done.
- *
- * Plain <svg>, no external assets, matches the site's mono/accent-green/
- * line-grid visual language (same palette tokens as globals.css).
- */
+/* ------------------------------------------------------------------ */
+/* Icon set — tiny inline SVGs, stroke-only, inherit currentColor so  */
+/* they pick up the card's text color automatically.                  */
+/* ------------------------------------------------------------------ */
+
+function Icon({ name, className = "w-5 h-5" }: { name: IconName; className?: string }) {
+  const common = {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.6,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    className,
+  };
+  switch (name) {
+    case "split":
+      return (
+        <svg {...common}>
+          <circle cx="6" cy="6" r="2.4" />
+          <circle cx="6" cy="18" r="2.4" />
+          <circle cx="18" cy="12" r="2.4" />
+          <path d="M8.1 7.1 15.9 11M8.1 16.9 15.9 13" />
+        </svg>
+      );
+    case "parallel":
+      return (
+        <svg {...common}>
+          <path d="M4 6h16M4 12h16M4 18h16" />
+          <path d="M20 6l-2-2m2 2-2 2M20 12l-2-2m2 2-2 2M20 18l-2-2m2 2-2 2" />
+        </svg>
+      );
+    case "skill":
+      return (
+        <svg {...common}>
+          <path d="M5 4h11l3 3v13H5z" />
+          <path d="M9 9h6M9 13h6M9 17h3" />
+        </svg>
+      );
+    case "gate":
+      return (
+        <svg {...common}>
+          <path d="M12 3 21 12 12 21 3 12Z" />
+          <path d="M12 9v6" />
+        </svg>
+      );
+    case "scale":
+      return (
+        <svg {...common}>
+          <path d="M12 3v18M7 7h10M4.5 7 7 13.5 9.5 7M14.5 7 17 13.5 19.5 7" />
+        </svg>
+      );
+    case "check":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="m8 12.5 2.6 2.6L16.2 9" />
+        </svg>
+      );
+    case "critic":
+      return (
+        <svg {...common}>
+          <circle cx="11" cy="11" r="6.5" />
+          <path d="m20 20-4.3-4.3" />
+          <path d="M9 11h4" />
+        </svg>
+      );
+    case "shield":
+      return (
+        <svg {...common}>
+          <path d="M12 3 20 6.5V12c0 5-3.4 8-8 9-4.6-1-8-4-8-9V6.5Z" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+      );
+    case "bolt":
+      return (
+        <svg {...common}>
+          <path d="M13 3 5 13.5h6L10 21l9-11h-6.5Z" />
+        </svg>
+      );
+    case "clock":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3.2 2" />
+        </svg>
+      );
+    case "file":
+      return (
+        <svg {...common}>
+          <path d="M6 3h8l4 4v14H6z" />
+          <path d="M9 12h6M9 16h6" />
+        </svg>
+      );
+    case "bell":
+      return (
+        <svg {...common}>
+          <path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5h-15S6 14 6 10Z" />
+          <path d="M10 19a2 2 0 0 0 4 0" />
+        </svg>
+      );
+    case "fork":
+      return (
+        <svg {...common}>
+          <circle cx="6" cy="6" r="2" />
+          <circle cx="6" cy="18" r="2" />
+          <circle cx="18" cy="12" r="2" />
+          <path d="M8 6h4a4 4 0 0 1 4 4M8 18h4a4 4 0 0 0 4-4" />
+        </svg>
+      );
+    case "db":
+      return (
+        <svg {...common}>
+          <ellipse cx="12" cy="6" rx="7" ry="3" />
+          <path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6" />
+          <path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3" />
+        </svg>
+      );
+    case "task":
+      return (
+        <svg {...common}>
+          <rect x="4" y="4" width="16" height="16" rx="2.5" />
+          <path d="m8.5 12 2.2 2.2L16 9" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
+type IconName =
+  | PrincipleIcon
+  | "clock"
+  | "file"
+  | "bell"
+  | "fork"
+  | "db"
+  | "task";
+
+/* ------------------------------------------------------------------ */
+/* Principle cards — icon + 2-4 word label, full sentence hidden      */
+/* behind a tap/hover reveal so the default view is almost all        */
+/* visual. Scroll-in animation reuses the site's existing Reveal      */
+/* pattern (same easing/duration as Projects/Hero) for consistency.   */
+/* ------------------------------------------------------------------ */
+
+function PrincipleTile({
+  lead,
+  icon,
+  body,
+  index,
+}: {
+  lead: string;
+  icon: PrincipleIcon;
+  body: string;
+  index: number;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Reveal delay={(index % 3) * 0.05} y={18}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className={`group w-full h-full text-left rounded-xl border px-4 py-5 flex flex-col gap-3 transition-colors duration-300 ${
+          open ? "border-accent bg-accent/5" : "border-[var(--line)] bg-bg-soft hover:border-accent/50"
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <span
+            className={`inline-flex items-center justify-center w-9 h-9 rounded-lg border transition-colors duration-300 ${
+              open ? "border-accent text-accent" : "border-[var(--line)] text-fg-dim"
+            }`}
+          >
+            <Icon name={icon} />
+          </span>
+          <span className="mono text-[10px] text-fg-dim/60">{String(index + 1).padStart(2, "0")}</span>
+        </div>
+
+        <h3 className="text-base font-semibold text-fg tracking-tight leading-snug">{lead}</h3>
+
+        <AnimatePresence initial={false}>
+          {open && (
+            <motion.p
+              key="body"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              className="text-xs text-fg-dim leading-relaxed overflow-hidden"
+            >
+              {body}
+            </motion.p>
+          )}
+        </AnimatePresence>
+
+        <span className="mono text-[10px] text-fg-dim/50 group-hover:text-accent/70 transition-colors mt-auto">
+          {open ? "tap to collapse" : "tap for detail"}
+        </span>
+      </button>
+    </Reveal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Flow diagram — mobile-first vertical stepper. Every node is a      */
+/* small tappable card; arrows connect every step top-to-bottom so    */
+/* the full flow is traceable at a glance, at any viewport width.     */
+/* Branches (gate -> quiet/alert, fan-out, critic loop) render as     */
+/* small side-by-side groups instead of a fixed-width SVG canvas, so  */
+/* nothing ever needs horizontal scrolling or shrinking to fit.       */
+/* ------------------------------------------------------------------ */
+
+function Arrow({ dashed = false }: { dashed?: boolean }) {
+  return (
+    <svg
+      width="20"
+      height="28"
+      viewBox="0 0 20 28"
+      className="text-fg-dim/70 shrink-0"
+      aria-hidden="true"
+    >
+      <line
+        x1="10"
+        y1="0"
+        x2="10"
+        y2="20"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeDasharray={dashed ? "3 3" : undefined}
+      />
+      <path d="M4 18 L10 26 L16 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function FlowNode({
+  icon,
+  title,
+  caption,
+  tone = "default",
+  compact = false,
+}: {
+  icon: IconName;
+  title: string;
+  caption: string;
+  tone?: "default" | "accent" | "dim";
+  compact?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const borderTone =
+    tone === "accent" ? "border-accent/70 text-accent" : tone === "dim" ? "border-[var(--line)] text-fg-dim" : "border-[var(--line)] text-fg";
+
+  return (
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.97 }}
+      onClick={() => setOpen((o) => !o)}
+      aria-expanded={open}
+      className={`relative flex flex-col items-center justify-center gap-1.5 text-center rounded-xl border bg-bg px-3 ${
+        compact ? "py-3 min-w-[84px]" : "py-4 min-w-[140px]"
+      } ${borderTone} ${open ? "shadow-[0_0_0_1px_var(--accent)]" : ""} transition-shadow duration-300`}
+    >
+      <Icon name={icon} className={compact ? "w-4 h-4" : "w-5 h-5"} />
+      <span className={`mono ${compact ? "text-[10px]" : "text-[11px]"} leading-tight`}>{title}</span>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.span
+            key="cap"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="mono text-[9.5px] text-fg-dim leading-snug overflow-hidden max-w-[140px]"
+          >
+            {caption}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </motion.button>
+  );
+}
+
+function LaneLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="mono text-[11px] text-accent uppercase tracking-[0.2em] mb-1">{children}</span>
+  );
+}
+
+function BranchLabel({ children }: { children: React.ReactNode }) {
+  return <span className="mono text-[10px] text-fg-dim/70 -mb-0.5">{children}</span>;
+}
+
+const TASKS: { icon: IconName; title: string; caption: string }[] = [
+  { icon: "task", title: "task A", caption: "independent workstream, no shared state" },
+  { icon: "task", title: "task B", caption: "independent workstream, no shared state" },
+  { icon: "task", title: "task C", caption: "routes through the cold-context critic before done" },
+  { icon: "task", title: "task D", caption: "independent workstream, no shared state" },
+];
+
 function WorkflowDiagram() {
   return (
-    <div className="glass-panel rounded-xl p-4 md:p-8 overflow-x-auto">
-      <svg
-        viewBox="0 0 980 420"
-        role="img"
-        aria-label="Two-layer workflow diagram. Top lane: Operator, always-on — a cron scheduler checks a gate, 'change detected?', then either writes quietly to a local log or sends a real alert. Bottom lane: Builder, bursts — a dispatcher fans out through a pre-execution guard into four parallel task boxes, each writing its evidence into one shared audit-trail log; one task loops out to a cold-context critic before being marked done."
-        className="w-full min-w-[820px] h-auto"
-        fontFamily="var(--font-jbmono), ui-monospace, SFMono-Regular, Menlo, monospace"
-      >
-        {/* lane labels */}
-        <text x="16" y="28" fill="var(--accent)" fontSize="13" letterSpacing="2" className="uppercase">
-          Operator &middot; always-on
-        </text>
-        <text x="16" y="208" fill="var(--accent)" fontSize="13" letterSpacing="2" className="uppercase">
-          Builder &middot; bursts
-        </text>
+    <div
+      className="glass-panel rounded-xl p-5 md:p-10 flex flex-col items-center"
+      role="img"
+      aria-label="Two-layer workflow: a cron scheduler feeds a change-detection gate that routes to either a quiet log or a real alert. Separately, a dispatcher fans out through a pre-execution guard into four parallel tasks that converge on one shared audit-trail log, with one task routing through a cold-context critic before being marked done. Tap any node for detail."
+    >
+      <LaneLabel>Operator · always-on</LaneLabel>
+      <FlowNode icon="clock" title="cron scheduler" caption="runs on a fixed schedule" />
+      <Arrow />
+      <FlowNode icon="gate" title="change detected?" caption="cheap, deterministic check — gates the expensive run" tone="accent" />
 
-        {/* lane separators */}
-        <line x1="0" y1="40" x2="980" y2="40" stroke="var(--line)" strokeWidth="1" />
-        <line x1="0" y1="180" x2="980" y2="180" stroke="var(--line)" strokeWidth="1" />
-        <line x1="0" y1="400" x2="980" y2="400" stroke="var(--line)" strokeWidth="1" />
+      <div className="flex items-start gap-8 mt-1">
+        <div className="flex flex-col items-center">
+          <BranchLabel>no</BranchLabel>
+          <Arrow />
+          <FlowNode icon="file" title="quiet log" caption="routine run, no ping" tone="dim" compact />
+        </div>
+        <div className="flex flex-col items-center">
+          <BranchLabel>yes</BranchLabel>
+          <Arrow />
+          <FlowNode icon="bell" title="real alert" caption="human-only blocker" tone="accent" compact />
+        </div>
+      </div>
 
-        {/* ---- TOP LANE: operator ---- */}
-        {/* cron scheduler */}
-        <rect x="24" y="70" width="140" height="64" rx="10" fill="none" stroke="var(--fg-dim)" strokeWidth="1.5" />
-        <text x="94" y="96" textAnchor="middle" fill="var(--fg)" fontSize="13">
-          cron
-        </text>
-        <text x="94" y="114" textAnchor="middle" fill="var(--fg-dim)" fontSize="11">
-          scheduler
-        </text>
+      <div className="my-10 h-px w-16 bg-[var(--line)]" aria-hidden="true" />
 
-        <line x1="164" y1="102" x2="222" y2="102" stroke="var(--fg-dim)" strokeWidth="1.5" markerEnd="url(#arrow)" />
+      <LaneLabel>Builder · bursts</LaneLabel>
+      <FlowNode icon="fork" title="dispatcher" caption="decomposes work into independent pieces" />
+      <Arrow dashed />
+      <FlowNode icon="shield" title="guard" caption="pre-execution check, before anything runs" tone="accent" />
+      <Arrow dashed />
 
-        {/* gate icon (diamond) */}
-        <polygon
-          points="300,66 356,102 300,138 244,102"
-          fill="none"
-          stroke="var(--accent)"
-          strokeWidth="1.5"
-        />
-        <text x="300" y="98" textAnchor="middle" fill="var(--accent)" fontSize="10.5">
-          change
-        </text>
-        <text x="300" y="112" textAnchor="middle" fill="var(--accent)" fontSize="10.5">
-          detected?
-        </text>
-
-        {/* gate -> quiet log (no) */}
-        <line x1="356" y1="102" x2="430" y2="102" stroke="var(--fg-dim)" strokeWidth="1.5" markerEnd="url(#arrow)" />
-        <text x="365" y="90" fill="var(--fg-dim)" fontSize="10">no</text>
-        <rect x="430" y="70" width="150" height="64" rx="10" fill="none" stroke="var(--line)" strokeWidth="1.5" />
-        <text x="505" y="96" textAnchor="middle" fill="var(--fg-dim)" fontSize="12">
-          quiet local log
-        </text>
-        <text x="505" y="113" textAnchor="middle" fill="var(--fg-dim)" fontSize="10.5">
-          routine run, no ping
-        </text>
-
-        {/* gate -> alert (yes) */}
-        <line x1="328" y1="138" x2="328" y2="160" stroke="var(--fg-dim)" strokeWidth="1.5" />
-        <line x1="328" y1="160" x2="700" y2="160" stroke="var(--fg-dim)" strokeWidth="1.5" />
-        <line x1="700" y1="160" x2="700" y2="134" stroke="var(--fg-dim)" strokeWidth="1.5" markerEnd="url(#arrow)" />
-        <text x="430" y="152" fill="var(--fg-dim)" fontSize="10">yes</text>
-        <rect x="630" y="70" width="150" height="64" rx="10" fill="none" stroke="var(--accent)" strokeWidth="1.5" />
-        <text x="705" y="96" textAnchor="middle" fill="var(--accent)" fontSize="12">
-          real alert
-        </text>
-        <text x="705" y="113" textAnchor="middle" fill="var(--fg-dim)" fontSize="10.5">
-          human-only blocker
-        </text>
-
-        {/* ---- BOTTOM LANE: builder ---- */}
-        {/* dispatcher */}
-        <rect x="24" y="210" width="140" height="56" rx="10" fill="none" stroke="var(--fg-dim)" strokeWidth="1.5" />
-        <text x="94" y="234" textAnchor="middle" fill="var(--fg)" fontSize="13">
-          dispatcher
-        </text>
-        <text x="94" y="250" textAnchor="middle" fill="var(--fg-dim)" fontSize="10.5">
-          decomposes work
-        </text>
-
-        {/* shield / pre-execution guard */}
-        <path
-          d="M 226 210 L 254 218 L 254 238 Q 254 254 226 264 Q 198 254 198 238 L 198 218 Z"
-          fill="none"
-          stroke="var(--accent)"
-          strokeWidth="1.5"
-        />
-        <text x="226" y="280" textAnchor="middle" fill="var(--accent)" fontSize="10">
-          guard
-        </text>
-
-        {/* dispatcher -> guard (dashed) */}
-        <line
-          x1="164"
-          y1="238"
-          x2="196"
-          y2="238"
-          stroke="var(--fg-dim)"
-          strokeWidth="1.5"
-          strokeDasharray="4 3"
-          markerEnd="url(#arrow)"
-        />
-
-        {/* guard fans out (dashed) into 4 task boxes */}
-        {[
-          { x: 320, label: "task A" },
-          { x: 470, label: "task B" },
-          { x: 620, label: "task C" },
-          { x: 770, label: "task D" },
-        ].map((t) => (
-          <g key={t.label}>
-            <path
-              d={`M 254 230 L ${t.x} 212`}
-              fill="none"
-              stroke="var(--fg-dim)"
-              strokeWidth="1.3"
-              strokeDasharray="4 3"
-              markerEnd="url(#arrow)"
-            />
-            <rect x={t.x - 56} y="212" width="112" height="46" rx="9" fill="none" stroke="var(--fg-dim)" strokeWidth="1.5" />
-            <text x={t.x} y="240" textAnchor="middle" fill="var(--fg)" fontSize="12">
-              {t.label}
-            </text>
-          </g>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full max-w-[420px] sm:max-w-none justify-items-center">
+        {TASKS.map((t) => (
+          <FlowNode key={t.title} {...t} compact />
         ))}
+      </div>
 
-        {/* critic cold-context loop off task C */}
-        <path
-          d="M 620 258 C 600 300, 560 300, 560 330"
-          fill="none"
-          stroke="var(--fg-dim)"
-          strokeWidth="1.3"
-          strokeDasharray="2 4"
-          markerEnd="url(#arrow)"
-        />
-        <rect x="495" y="330" width="130" height="50" rx="9" fill="none" stroke="var(--accent)" strokeWidth="1.5" />
-        <text x="560" y="352" textAnchor="middle" fill="var(--accent)" fontSize="11.5">
-          critic
-        </text>
-        <text x="560" y="368" textAnchor="middle" fill="var(--fg-dim)" fontSize="10">
-          (cold context)
-        </text>
-        <path
-          d="M 560 330 C 560 300, 600 300, 620 268"
-          fill="none"
-          stroke="var(--fg-dim)"
-          strokeWidth="1.3"
-          strokeDasharray="2 4"
-          markerEnd="url(#arrow)"
-        />
+      <Arrow />
+      <FlowNode icon="db" title="audit-trail log" caption="one shared log — every task writes its evidence here" tone="accent" />
 
-        {/* each task box -> shared audit-trail log (solid) */}
-        {[320, 470, 620, 770].map((x) => (
-          <line
-            key={x}
-            x1={x}
-            y1="258"
-            x2={490 + (x - 320) * 0.08}
-            y2="330"
-            stroke="var(--accent)"
-            strokeWidth="1.4"
-            markerEnd="url(#arrowAccent)"
-          />
-        ))}
+      <div className="flex flex-col items-center mt-8 pt-6 border-t border-dashed border-[var(--line)] w-full max-w-[260px]">
+        <BranchLabel>task C only, before marked done</BranchLabel>
+        <Arrow dashed />
+        <FlowNode icon="critic" title="critic" caption="cold context — zero shared history, no benefit of the doubt" tone="accent" compact />
+        <Arrow dashed />
+        <FlowNode icon="check" title="done" caption="only after the critic pass clears it" compact />
+      </div>
 
-        {/* shared audit-trail log cylinder */}
-        <g transform="translate(410,328)">
-          <path
-            d="M0,10 Q40,-6 80,10 L80,46 Q40,62 0,46 Z"
-            fill="rgba(186,255,41,0.06)"
-            stroke="var(--accent)"
-            strokeWidth="1.5"
-          />
-          <path d="M0,10 Q40,24 80,10" fill="none" stroke="var(--accent)" strokeWidth="1.5" />
-          <text x="40" y="34" textAnchor="middle" fill="var(--accent)" fontSize="10">
-            audit-trail
-          </text>
-          <text x="40" y="47" textAnchor="middle" fill="var(--accent)" fontSize="10">
-            log
-          </text>
-        </g>
-
-        <defs>
-          <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6 Z" fill="var(--fg-dim)" />
-          </marker>
-          <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)" />
-          </marker>
-        </defs>
-      </svg>
-
-      <p className="mono text-[11px] text-fg-dim mt-4 leading-relaxed">
-        Top: a cheap, deterministic gate decides whether the expensive agent run wakes up at all.
-        Bottom: independent tasks fan out behind a pre-execution guard, converge on one shared
-        audit log, and one path routes through a critic with zero shared context before anything
-        is marked done.
-      </p>
+      <p className="mono text-[10px] text-fg-dim/60 mt-8 text-center">tap any node to see what it does</p>
     </div>
   );
 }
@@ -243,17 +383,9 @@ export function AIWorkflow() {
           <WorkflowDiagram />
         </Reveal>
 
-        <div className="mt-16 grid md:grid-cols-2 gap-px bg-[var(--line)] rounded-xl overflow-hidden border border-[var(--line)]">
+        <div className="mt-16 grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
           {aiWorkflowPrinciples.map((p, i) => (
-            <Reveal key={p.lead} delay={(i % 2) * 0.04} className="bg-bg-soft p-6 md:p-8 flex flex-col gap-3">
-              <span className="mono text-xs text-fg-dim">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <h3 className="text-lg md:text-xl font-semibold text-fg tracking-tight">
-                {p.lead}
-              </h3>
-              <p className="text-sm text-fg-dim leading-relaxed">{p.body}</p>
-            </Reveal>
+            <PrincipleTile key={p.lead} lead={p.lead} icon={p.icon} body={p.body} index={i} />
           ))}
         </div>
       </div>
