@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown from "react-markdown";
 import posthog from "posthog-js";
 import { Reveal } from "./Reveal";
 
@@ -72,10 +73,27 @@ function StreamingAnswer({ text, onDone }: { text: string; onDone?: () => void }
   const done = count >= words.length;
 
   return (
-    <p className="text-fg-dim text-sm md:text-base leading-relaxed whitespace-pre-wrap">
-      {shown}
+    <div className="prose-ask text-fg-dim text-sm md:text-base leading-relaxed">
+      <ReactMarkdown
+        components={{
+          // Keep headings visually modest inside the chat bubble (don't let
+          // a model-emitted "## eval-lab" look like a page section heading).
+          h1: ({ children }) => <p className="font-semibold text-fg mt-2 mb-1">{children}</p>,
+          h2: ({ children }) => <p className="font-semibold text-fg mt-2 mb-1">{children}</p>,
+          h3: ({ children }) => <p className="font-semibold text-fg mt-2 mb-1">{children}</p>,
+          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+          ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
+          code: ({ children }) => (
+            <code className="mono text-xs bg-bg-soft/80 px-1 py-0.5 rounded">{children}</code>
+          ),
+          strong: ({ children }) => <strong className="text-fg font-semibold">{children}</strong>,
+        }}
+      >
+        {shown}
+      </ReactMarkdown>
       {!done && <span className="caret inline-block w-[2px] h-[1em] bg-accent ml-0.5 align-middle" />}
-    </p>
+    </div>
   );
 }
 
@@ -86,6 +104,12 @@ export function AskMe() {
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<Turn[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Reflects the REAL mode of the most recent answer, not a hardcoded
+  // assumption. Before any question is asked, we don't know yet (the
+  // deployment's LLM key could be set or unset) — say so honestly instead
+  // of guessing either way.
+  const lastAnswerMode = history.length > 0 ? history[history.length - 1].a.answerMode : null;
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -166,11 +190,30 @@ export function AskMe() {
             case studies, and reliability reports, cited by file and line.
           </p>
           <p className="mt-3 mono text-xs text-fg-dim/70 max-w-xl">
-            No LLM key is configured on this deployment right now, so answers
-            come back as a direct, cited excerpt dump — not generated prose.
-            Retrieval and citations are real either way; see the{" "}
-            <span className="text-fg-dim">answerMode</span> badge under each
-            reply.
+            {lastAnswerMode === "llm" ? (
+              <>
+                Answers are generated prose from a real model (Claude Haiku),
+                grounded strictly in cited excerpts — not freeform. See the{" "}
+                <span className="text-fg-dim">answerMode</span> badge under
+                each reply.
+              </>
+            ) : lastAnswerMode === "deterministic" ? (
+              <>
+                No LLM key is configured on this deployment right now, so
+                answers come back as a direct, cited excerpt dump — not
+                generated prose. Retrieval and citations are real either way;
+                see the <span className="text-fg-dim">answerMode</span> badge
+                under each reply.
+              </>
+            ) : (
+              <>
+                Ask a question to see the live{" "}
+                <span className="text-fg-dim">answerMode</span> — generated
+                prose if an LLM key is active on this deployment, or a direct
+                cited excerpt dump if not. Retrieval and citations are real
+                either way.
+              </>
+            )}
           </p>
         </Reveal>
 
