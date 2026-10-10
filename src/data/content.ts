@@ -184,7 +184,7 @@ export const experience = [
       "LATAM e-commerce platform serving 4.3M+ users. Full-stack engineering across every surface — web, native Android/iOS, and smart TV/OTT — plus observability, clean architecture, and AI-agent workflow design.",
     bullets: [
       "Owned 10+ initiatives end-to-end solo, together reaching 4M+ users across LATAM; one shipped feature alone served 1.5M+ users with zero production incidents.",
-      "Led cross-platform initiatives spanning web, mobile WebViews, and AI-assisted native development for Android and iOS, using Spec-Driven Development and scalable frontend architecture.",
+      "Led cross-platform initiatives spanning web, mobile WebViews, and AI-assisted native development in Kotlin (Android) and Swift (iOS), using Spec-Driven Development and scalable frontend architecture.",
       "Built backend APIs with caching, idempotency, and low-latency design underpinning those same web, mobile, and TV surfaces.",
       "Shipped smart TV and OTT surfaces: web receivers for LG, Samsung (Tizen), and a Chromecast Web Receiver, for video streaming.",
       "Implemented observability and monitoring using Kibana, New Relic, Datadog, and Grafana aligned with SRE practices (SLA/SLI/SLO).",
@@ -301,3 +301,40 @@ export const links = {
   github: "https://github.com/edgeorgie",
   email: "mailto:ed.jorge1122@gmail.com",
 };
+
+export type BeyondItem = {
+  label: string;
+  body: string;
+};
+
+/**
+ * "Beyond the code" section: real, verifiable facts about who the
+ * candidate is outside of the resume bullets — not a generic hobbies list.
+ * Each entry exists because it's either independently checkable (a real
+ * shipped game at 15, a specific tech stack / degree) or directly relevant
+ * to how he works (self-taught, design-minded, morning-person routine).
+ * No invented numbers or claims — see RECRUITER-FAQ.md in ask-edgeorgie-mcp
+ * for the first-person source this section is drawn from.
+ */
+export const beyond: BeyondItem[] = [
+  {
+    label: "Core stack, no fear of new ones",
+    body: "JavaScript/TypeScript is where I'm deepest — but I don't stick to only what I already know. At Mercado Libre I picked up Kotlin and Swift on the job for AI-assisted native Android/iOS work, learning both while shipping, not before.",
+  },
+  {
+    label: "Self-taught, by background and by habit",
+    body: "Electronic Engineering degree alongside Software Development. Most of what I know about AI/agentic systems specifically, I taught myself outside any formal course — same instinct I bring to a new stack or a new tool.",
+  },
+  {
+    label: "Design is something I do, not just ship to",
+    body: "UX and interaction design on these projects — this portfolio included — are my own decisions, not a template. I care how something feels to use, not only whether the API underneath is correct.",
+  },
+  {
+    label: "I build games, not just play them",
+    body: "At 15 I built and shipped a 2D platformer on my own — about 50 downloads. I'm now self-teaching game development and design in Unreal Engine (5.8.3), same self-directed approach I bring to everything else.",
+  },
+  {
+    label: "Guitar, the gym, and mornings",
+    body: "Learning guitar. At the gym 4 mornings a week — I'm a morning person, I'd rather get moving early than push it to the end of the day.",
+  },
+];

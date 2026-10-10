@@ -8,6 +8,7 @@ const SECTIONS = [
   { id: "ask-me", label: "Ask an agent" },
   { id: "work", label: "Work" },
   { id: "experience", label: "Experience" },
+  { id: "beyond", label: "Beyond the code" },
   { id: "ai-workflow", label: "How I use AI" },
   { id: "contact", label: "Contact" },
 ];
