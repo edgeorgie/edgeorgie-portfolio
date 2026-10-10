@@ -137,3 +137,24 @@ body {
 .cmdk-glow {
   box-shadow: 0 0 0 1px rgba(186,255,41,0.15), 0 8px 40px -12px rgba(186,255,41,0.25);
 }
+
+/* Respect OS-level reduced-motion preference (WCAG 2.3.3) as a global
+   safety net: Reveal.tsx and Hero.tsx's scroll-bounce already check
+   useReducedMotion() in JS and skip their animations entirely, but this
+   rule also neutralizes any CSS-driven transition/animation/scroll
+   smoothing for users who have the preference set, in case any other
+   component ever adds motion without checking the JS hook.
+   See qa-reports/portfolio.md Issue #3. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

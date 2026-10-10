@@ -14,9 +14,64 @@ import { NextResponse } from "next/server";
  */
 const UPSTREAM = "https://ask-edgeorgie-mcp.vercel.app/api/ask";
 
+/**
+ * Minimal in-memory per-IP token-bucket rate limiter.
+ *
+ * This is a public, unauthenticated proxy to a separate metered Vercel
+ * project — without a cap, a scripted client can hammer that upstream
+ * project's usage/billing indefinitely (see QA report
+ * qa-reports/portfolio.md, Issue #1, High severity).
+ *
+ * In-memory is sufficient here: Vercel serverless functions for a given
+ * region/route tend to stay warm across bursts of requests from the same
+ * client, which is exactly the abuse pattern (rapid-fire from one IP)
+ * this is meant to blunt. It intentionally does not try to be a
+ * distributed/global limiter (that would need Upstash/Vercel KV) — the
+ * goal is "stop a trivial unlimited-loop curl/script", not perfect
+ * enforcement across every cold start.
+ */
+const RATE_LIMIT = 10; // requests
+const RATE_WINDOW_MS = 60_000; // per 1 minute, per IP
+
+const buckets = new Map<string, { count: number; resetAt: number }>();
+
+function getClientIp(req: Request): string {
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0].trim();
+  const real = req.headers.get("x-real-ip");
+  if (real) return real.trim();
+  return "unknown";
+}
+
+function checkRateLimit(ip: string): { limited: boolean; retryAfterSeconds: number } {
+  const now = Date.now();
+  const entry = buckets.get(ip);
+
+  if (!entry || now >= entry.resetAt) {
+    buckets.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return { limited: false, retryAfterSeconds: 0 };
+  }
+
+  if (entry.count >= RATE_LIMIT) {
+    return { limited: true, retryAfterSeconds: Math.ceil((entry.resetAt - now) / 1000) };
+  }
+
+  entry.count += 1;
+  return { limited: false, retryAfterSeconds: 0 };
+}
+
 export async function POST(req: Request) {
-  let question: string | undefined;
-  let topK: number | undefined;
+  const ip = getClientIp(req);
+  const { limited, retryAfterSeconds } = checkRateLimit(ip);
+  if (limited) {
+    return NextResponse.json(
+      { error: "Too many requests. Please slow down and try again shortly." },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+    );
+  }
+
+  let question: unknown;
+  let topK: unknown;
   try {
     const body = await req.json();
     question = body?.question;
@@ -25,9 +80,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  if (!question || question.trim().length < 3) {
+  if (typeof question !== "string" || question.trim().length < 3) {
     return NextResponse.json(
-      { error: "Ask a real question (at least 3 characters)." },
+      { error: "question must be a non-empty string (at least 3 characters)." },
       { status: 400 }
     );
   }
