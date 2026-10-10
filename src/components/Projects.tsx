@@ -134,11 +134,11 @@ export function Projects() {
             02 · Shipped
           </p>
           <h2 className="text-4xl md:text-6xl font-semibold tracking-tight max-w-3xl">
-            Four real artifacts. Agents actually invoke them.
+            Four real, running projects — not slideware.
           </h2>
           <p className="mt-5 text-fg-dim max-w-xl text-lg">
-            An MCP server you can query about me, a webhook-triggered bot,
-            a CI gate, and a publicly deployed repo Q&A server — each
+            A deployed MCP server you can query about me, a webhook-triggered
+            bot, a CI gate, and a publicly reachable repo Q&A server — each
             with a GitHub run log behind its numbers.
           </p>
         </Reveal>

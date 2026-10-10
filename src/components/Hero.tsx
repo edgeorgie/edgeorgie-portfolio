@@ -4,10 +4,10 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
 const ROLES = [
-  "AI agent architectures",
-  "webhook-triggered bots",
-  "MCP servers",
-  "eval-gated CI",
+  "full-stack web platforms",
+  "cross-platform UIs",
+  "reliable backend APIs",
+  "AI agent systems",
 ];
 
 const TERMINAL_LINES = [
@@ -84,7 +84,7 @@ export function Hero() {
         >
           I build software
           <br />
-          <span className="text-accent">AI agents</span> actually use.
+          people <span className="text-accent">and agents</span> rely on.
         </motion.h1>
 
         <motion.div
@@ -98,9 +98,10 @@ export function Hero() {
             <span className="text-fg">
               {ROLES[roleIdx]}
             </span>{" "}
-            in production at LATAM e-commerce scale (4.3M+ users). Off the
-            clock, I ship the same thing as side projects, backed by real
-            webhook runs and a live MCP server you can question right now.
+            in production at LATAM e-commerce scale (4.3M+ users). Outside
+            work, I keep building — including a set of real, publicly
+            running AI-agent projects: webhook-triggered bots and a live
+            MCP server you can question right now.
           </p>
         </motion.div>
 

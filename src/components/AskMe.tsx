@@ -155,7 +155,7 @@ export function AskMe() {
       <div className="relative max-w-6xl mx-auto px-6 md:px-10">
         <Reveal>
           <p className="mono text-xs text-accent uppercase tracking-widest mb-3">
-            01 · Talk to an agent, not a résumé
+            01 · Ask about my work, live
           </p>
           <h2 className="text-4xl md:text-6xl font-semibold tracking-tight max-w-3xl">
             Ask it something. Right here.

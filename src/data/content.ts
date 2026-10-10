@@ -146,12 +146,12 @@ export const experience = [
     period: "November 2022 — Present",
     location: "Remote",
     summary:
-      "LATAM e-commerce platform serving 4.3M+ users. Designed AI workflows and agent-based architectures, defining agent rules, skills, and orchestration across services.",
+      "LATAM e-commerce platform serving 4.3M+ users. Full-stack and cross-platform engineering — web, mobile, TV — plus observability, clean architecture, and AI-agent workflow design across services.",
     bullets: [
-      "Designed AI workflows and agent-based architectures, defining agent rules, skills, and orchestration across services.",
       "Led cross-platform initiatives (web, mobile, TV/Samsung/LG) using Spec-Driven Development and scalable frontend architecture.",
       "Implemented observability and monitoring using Kibana, New Relic, Datadog, and Grafana aligned with SRE practices (SLA/SLI/SLO).",
       "Applied Clean Architecture and Domain-Driven Design while refactoring legacy systems and improving code quality.",
+      "Designed AI workflows and agent-based architectures, defining agent rules, skills, and orchestration across services.",
       "Contributed to OTT video streaming platforms, including Chromecast Web Receiver development.",
     ],
   },
