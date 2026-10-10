@@ -7,6 +7,7 @@ const NAV = [
   { href: "#work", label: "Work" },
   { href: "#ask-me", label: "Ask an agent" },
   { href: "#experience", label: "Experience" },
+  { href: "#ai-workflow", label: "How I use AI" },
   { href: "#contact", label: "Contact" },
 ];
 
