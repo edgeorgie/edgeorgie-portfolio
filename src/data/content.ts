@@ -192,53 +192,73 @@ export type Principle = {
   lead: string;
   icon: PrincipleIcon;
   body: string;
+  hintClosed: string;
+  hintOpen: string;
 };
 
 export const aiWorkflowPrinciples: Principle[] = [
   {
     lead: "Builder vs. operator",
     icon: "split",
-    body: "Claude Code is my \u201cbuilder\u201d \u2014 dispatched in bursts via parallel task delegation, no memory between sessions. A separate always-on layer (Hermes/cron) is the \u201coperator\u201d that runs what Claude Code builds, indefinitely, without needing to be re-explained. That split is the actual leverage move, not the model itself.",
+    body: "Claude Code is my \u201cbuilder\u201d \u2014 dispatched in bursts via parallel task delegation, no memory between sessions. A separate always-on layer (Hermes/cron) is the \u201coperator\u201d that runs what Claude Code builds, indefinitely, without needing to be re-explained. That division of labor is where the real leverage comes from, more so than which model is doing the work.",
+    hintClosed: "see the split",
+    hintOpen: "hide the split",
   },
   {
-    lead: "Parallel, not serial",
+    lead: "Built to run in parallel",
     icon: "parallel",
     body: "Independent workstreams run concurrently as separate delegated tasks, anchored to one shared audit-trail log. I decompose first \u2014 which pieces have no dependency on each other? \u2014 then fire them together so results reconcile instead of silently colliding.",
+    hintClosed: "see how it reconciles",
+    hintOpen: "collapse",
   },
   {
     lead: "Standing skills",
     icon: "skill",
     body: "Recurring procedures \u2014 cron-gating conventions, verification checklists, approval-gate rules \u2014 live as skills that load on demand, not instructions I retype every session. Write it once correctly, let every future session inherit it.",
+    hintClosed: "see what's codified",
+    hintOpen: "close",
   },
   {
     lead: "Gated cron",
     icon: "gate",
     body: "Scheduled jobs don't run an expensive agent on a fixed timer. A cheap, deterministic check runs first \u2014 did anything actually change? \u2014 and only wakes the full agent run if yes. Routine runs stay quiet; failures escalate to a real alert.",
+    hintClosed: "see the gate check",
+    hintOpen: "collapse",
   },
   {
     lead: "Model by stakes",
     icon: "scale",
-    body: "Cheap, fast models handle mechanical, low-stakes, easily-verified work. The strongest available model gets high-stakes work, judged against an explicit rubric \u2014 because \u201ceasy\u201d and \u201ccheap to get wrong\u201d aren't the same question.",
+    body: "Cheap, fast models handle mechanical, low-stakes, easily-verified work. The strongest available model gets high-stakes work, judged against an explicit rubric; being easy to do and being cheap to get wrong are two separate questions, and I size the model to whichever one actually applies.",
+    hintClosed: "see the rubric",
+    hintOpen: "hide",
   },
   {
     lead: "Verify, don't trust",
     icon: "check",
     body: "I don't accept an agent's self-report that something succeeded. I re-check the actual artifact: the live URL, the test run, the real log line. Narrating success and actually succeeding are different claims, and only one is checkable.",
+    hintClosed: "see what gets re-checked",
+    hintOpen: "collapse",
   },
   {
     lead: "Cold-context critic",
     icon: "critic",
     body: "Before anything is called finished, a cold review pass \u2014 no shared conversation history, no benefit of the doubt \u2014 checks it, specifically because a reviewer sharing context with the work tends to share its blind spots too.",
+    hintClosed: "see why cold, specifically",
+    hintOpen: "close",
   },
   {
     lead: "Security by default",
     icon: "shield",
     body: "A pre-execution guard intercepts destructive commands before they run. Secrets never get echoed into logs or committed files. Push-time secret scanning runs on everything I ship \u2014 none of it depends on me remembering to be careful.",
+    hintClosed: "see the guardrails",
+    hintOpen: "hide",
   },
   {
     lead: "Never idle",
     icon: "bolt",
     body: "If something could be running, it's running \u2014 idle time while one task could be started in parallel is a failure mode I actively correct for.",
+    hintClosed: "see the failure mode",
+    hintOpen: "collapse",
   },
 ];
 

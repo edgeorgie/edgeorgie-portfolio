@@ -156,11 +156,15 @@ function PrincipleTile({
   icon,
   body,
   index,
+  hintClosed,
+  hintOpen,
 }: {
   lead: string;
   icon: PrincipleIcon;
   body: string;
   index: number;
+  hintClosed: string;
+  hintOpen: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -203,7 +207,7 @@ function PrincipleTile({
         </AnimatePresence>
 
         <span className="mono text-[10px] text-fg-dim/50 group-hover:text-accent/70 transition-colors mt-auto">
-          {open ? "tap to collapse" : "tap for detail"}
+          {open ? hintOpen : hintClosed}
         </span>
       </button>
     </Reveal>
@@ -243,19 +247,26 @@ function Arrow({ dashed = false }: { dashed?: boolean }) {
 }
 
 function FlowNode({
+  id,
   icon,
   title,
   caption,
   tone = "default",
   compact = false,
+  micro = false,
+  open,
+  onToggle,
 }: {
+  id: string;
   icon: IconName;
   title: string;
   caption: string;
   tone?: "default" | "accent" | "dim";
   compact?: boolean;
+  micro?: boolean;
+  open: boolean;
+  onToggle: (id: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const borderTone =
     tone === "accent" ? "border-accent/70 text-accent" : tone === "dim" ? "border-[var(--line)] text-fg-dim" : "border-[var(--line)] text-fg";
 
@@ -263,14 +274,14 @@ function FlowNode({
     <motion.button
       type="button"
       whileTap={{ scale: 0.97 }}
-      onClick={() => setOpen((o) => !o)}
+      onClick={() => onToggle(id)}
       aria-expanded={open}
       className={`relative flex flex-col items-center justify-center gap-1.5 text-center rounded-xl border bg-bg px-3 ${
-        compact ? "py-3 min-w-[84px]" : "py-4 min-w-[140px]"
+        micro ? "py-2 min-w-[62px] px-1.5" : compact ? "py-3 min-w-[84px]" : "py-4 min-w-[140px]"
       } ${borderTone} ${open ? "shadow-[0_0_0_1px_var(--accent)]" : ""} transition-shadow duration-300`}
     >
-      <Icon name={icon} className={compact ? "w-4 h-4" : "w-5 h-5"} />
-      <span className={`mono ${compact ? "text-[10px]" : "text-[11px]"} leading-tight`}>{title}</span>
+      <Icon name={icon} className={micro ? "w-3.5 h-3.5" : compact ? "w-4 h-4" : "w-5 h-5"} />
+      <span className={`mono ${micro ? "text-[9px]" : compact ? "text-[10px]" : "text-[11px]"} leading-tight`}>{title}</span>
       <AnimatePresence initial={false}>
         {open && (
           <motion.span
@@ -279,7 +290,7 @@ function FlowNode({
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="mono text-[9.5px] text-fg-dim leading-snug overflow-hidden max-w-[140px]"
+            className={`mono text-[9.5px] text-fg-dim leading-snug overflow-hidden ${micro ? "max-w-[92px]" : "max-w-[140px]"}`}
           >
             {caption}
           </motion.span>
@@ -299,64 +310,178 @@ function BranchLabel({ children }: { children: React.ReactNode }) {
   return <span className="mono text-[10px] text-fg-dim/70 -mb-0.5">{children}</span>;
 }
 
-const TASKS: { icon: IconName; title: string; caption: string }[] = [
-  { icon: "task", title: "task A", caption: "independent workstream, no shared state" },
-  { icon: "task", title: "task B", caption: "independent workstream, no shared state" },
-  { icon: "task", title: "task C", caption: "routes through the cold-context critic before done" },
-  { icon: "task", title: "task D", caption: "independent workstream, no shared state" },
+const TASKS: { id: string; icon: IconName; title: string; caption: string }[] = [
+  { id: "task-a", icon: "task", title: "task A", caption: "independent workstream, no shared state" },
+  { id: "task-b", icon: "task", title: "task B", caption: "independent workstream, no shared state" },
+  { id: "task-c", icon: "task", title: "task C", caption: "routes through the cold-context critic before done" },
+  { id: "task-d", icon: "task", title: "task D", caption: "independent workstream, no shared state" },
 ];
 
+const TOTAL_DIAGRAM_NODES = 13;
+
+function FanBus() {
+  return <div className="h-px w-full bg-[var(--line)]" aria-hidden="true" />;
+}
+
+function FanStub() {
+  return <div className="w-px h-4 bg-[var(--line)]" aria-hidden="true" />;
+}
+
 function WorkflowDiagram() {
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+  const toggle = (id: string) =>
+    setOpenIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
   return (
     <div
       className="glass-panel rounded-xl p-5 md:p-10 flex flex-col items-center"
       role="img"
-      aria-label="Two-layer workflow: a cron scheduler feeds a change-detection gate that routes to either a quiet log or a real alert. Separately, a dispatcher fans out through a pre-execution guard into four parallel tasks that converge on one shared audit-trail log, with one task routing through a cold-context critic before being marked done. Tap any node for detail."
+      aria-label="Two-layer workflow: a cron scheduler feeds a change-detection gate that routes to either a quiet log or a real alert. Separately, a dispatcher fans out through a pre-execution guard into four parallel tasks, each individually connected to the guard above and the shared audit-trail log below, with one task also routing through a cold-context critic before being marked done. Tap any node for detail."
     >
       <LaneLabel>Operator · always-on</LaneLabel>
-      <FlowNode icon="clock" title="cron scheduler" caption="runs on a fixed schedule" />
+      <FlowNode id="cron" icon="clock" title="cron scheduler" caption="runs on a fixed schedule" open={openIds.has("cron")} onToggle={toggle} />
       <Arrow />
-      <FlowNode icon="gate" title="change detected?" caption="cheap, deterministic check — gates the expensive run" tone="accent" />
+      <FlowNode
+        id="gate"
+        icon="gate"
+        title="change detected?"
+        caption="cheap, deterministic check — gates the expensive run"
+        tone="accent"
+        open={openIds.has("gate")}
+        onToggle={toggle}
+      />
 
       <div className="flex items-start gap-8 mt-1">
         <div className="flex flex-col items-center">
           <BranchLabel>no</BranchLabel>
           <Arrow />
-          <FlowNode icon="file" title="quiet log" caption="routine run, no ping" tone="dim" compact />
+          <FlowNode
+            id="quiet-log"
+            icon="file"
+            title="quiet log"
+            caption="routine run, no ping"
+            tone="dim"
+            compact
+            open={openIds.has("quiet-log")}
+            onToggle={toggle}
+          />
         </div>
         <div className="flex flex-col items-center">
           <BranchLabel>yes</BranchLabel>
           <Arrow />
-          <FlowNode icon="bell" title="real alert" caption="human-only blocker" tone="accent" compact />
+          <FlowNode
+            id="real-alert"
+            icon="bell"
+            title="real alert"
+            caption="human-only blocker"
+            tone="accent"
+            compact
+            open={openIds.has("real-alert")}
+            onToggle={toggle}
+          />
         </div>
       </div>
 
       <div className="my-10 h-px w-16 bg-[var(--line)]" aria-hidden="true" />
 
       <LaneLabel>Builder · bursts</LaneLabel>
-      <FlowNode icon="fork" title="dispatcher" caption="decomposes work into independent pieces" />
+      <FlowNode
+        id="dispatcher"
+        icon="fork"
+        title="dispatcher"
+        caption="decomposes work into independent pieces"
+        open={openIds.has("dispatcher")}
+        onToggle={toggle}
+      />
       <Arrow dashed />
-      <FlowNode icon="shield" title="guard" caption="pre-execution check, before anything runs" tone="accent" />
-      <Arrow dashed />
+      <FlowNode
+        id="guard"
+        icon="shield"
+        title="guard"
+        caption="pre-execution check, before anything runs"
+        tone="accent"
+        open={openIds.has("guard")}
+        onToggle={toggle}
+      />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full max-w-[420px] sm:max-w-none justify-items-center">
-        {TASKS.map((t) => (
-          <FlowNode key={t.title} {...t} compact />
-        ))}
+      {/* Fan-out: guard branches into one line per task box, then each task box */}
+      {/* converges into one line toward the shared audit-trail log. Drawn as a  */}
+      {/* literal bus + per-column stub, inside the same grid as the boxes, so   */}
+      {/* the lines always line up with their box at any viewport width.        */}
+      <div className="w-full max-w-[420px] sm:max-w-none mt-1">
+        <div className="flex justify-center">
+          <div className="w-px h-5 bg-[var(--line)]" aria-hidden="true" />
+        </div>
+        <FanBus />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 justify-items-center pt-0">
+          {TASKS.map((t) => (
+            <div key={t.id} className="flex flex-col items-center w-full">
+              <FanStub />
+              <FlowNode
+                id={t.id}
+                icon={t.icon}
+                title={t.title}
+                caption={t.caption}
+                compact
+                open={openIds.has(t.id)}
+                onToggle={toggle}
+              />
+              <FanStub />
+            </div>
+          ))}
+        </div>
+        <FanBus />
+        <div className="flex justify-center">
+          <div className="w-px h-5 bg-[var(--line)]" aria-hidden="true" />
+        </div>
       </div>
 
-      <Arrow />
-      <FlowNode icon="db" title="audit-trail log" caption="one shared log — every task writes its evidence here" tone="accent" />
+      <FlowNode
+        id="audit-log"
+        icon="db"
+        title="audit-trail log"
+        caption="one shared log — every task writes its evidence here"
+        tone="accent"
+        open={openIds.has("audit-log")}
+        onToggle={toggle}
+      />
 
       <div className="flex flex-col items-center mt-8 pt-6 border-t border-dashed border-[var(--line)] w-full max-w-[260px]">
         <BranchLabel>task C only, before marked done</BranchLabel>
         <Arrow dashed />
-        <FlowNode icon="critic" title="critic" caption="cold context — zero shared history, no benefit of the doubt" tone="accent" compact />
+        <FlowNode
+          id="critic"
+          icon="critic"
+          title="critic"
+          caption="cold context — zero shared history, no benefit of the doubt"
+          tone="accent"
+          compact
+          open={openIds.has("critic")}
+          onToggle={toggle}
+        />
         <Arrow dashed />
-        <FlowNode icon="check" title="done" caption="only after the critic pass clears it" compact />
+        <FlowNode
+          id="done"
+          icon="check"
+          title="done"
+          caption="only after the critic pass clears it"
+          compact
+          open={openIds.has("done")}
+          onToggle={toggle}
+        />
       </div>
 
-      <p className="mono text-[10px] text-fg-dim/60 mt-8 text-center">tap any node to see what it does</p>
+      <div className="mt-8 flex flex-col items-center gap-2">
+        <p className="mono text-[10px] text-fg-dim/60 text-center">tap any node to see what it does</p>
+        <p className="mono text-[9.5px] text-accent/70 tracking-wide" aria-live="polite">
+          {openIds.size}/{TOTAL_DIAGRAM_NODES} explored
+        </p>
+      </div>
     </div>
   );
 }
@@ -373,9 +498,9 @@ export function AIWorkflow() {
             How I use AI on a daily basis.
           </h2>
           <p className="mt-5 text-fg-dim max-w-xl text-lg">
-            Not a faster autocomplete &mdash; an orchestration layer with its own operating
-            discipline, built the same way I&apos;d build any system I&apos;m accountable
-            for in production.
+            How I use AI runs through an orchestration layer with its own operating
+            discipline. I build it the same way I&apos;d build any production system
+            I&apos;m accountable for, rather than leaning on raw autocomplete speed.
           </p>
         </Reveal>
 
@@ -385,7 +510,15 @@ export function AIWorkflow() {
 
         <div className="mt-16 grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
           {aiWorkflowPrinciples.map((p, i) => (
-            <PrincipleTile key={p.lead} lead={p.lead} icon={p.icon} body={p.body} index={i} />
+            <PrincipleTile
+              key={p.lead}
+              lead={p.lead}
+              icon={p.icon}
+              body={p.body}
+              index={i}
+              hintClosed={p.hintClosed}
+              hintOpen={p.hintOpen}
+            />
           ))}
         </div>
       </div>
