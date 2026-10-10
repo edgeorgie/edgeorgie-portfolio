@@ -3,6 +3,7 @@ import { Hero } from "@/components/Hero";
 import { Projects } from "@/components/Projects";
 import { AskMe } from "@/components/AskMe";
 import { Experience } from "@/components/Experience";
+import { AIWorkflow } from "@/components/AIWorkflow";
 import { LiveStats } from "@/components/LiveStats";
 import { Contact } from "@/components/Contact";
 import { SectionNav } from "@/components/SectionNav";
@@ -17,6 +18,7 @@ export default function Home() {
         <AskMe />
         <Projects />
         <Experience />
+        <AIWorkflow />
         <LiveStats />
         <Contact />
       </main>
