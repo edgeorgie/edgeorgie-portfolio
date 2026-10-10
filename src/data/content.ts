@@ -175,46 +175,67 @@ export const experience = [
   },
 ];
 
+export type PrincipleIcon =
+  | "split"
+  | "parallel"
+  | "skill"
+  | "gate"
+  | "scale"
+  | "check"
+  | "critic"
+  | "shield"
+  | "bolt";
+
 export type Principle = {
   lead: string;
+  icon: PrincipleIcon;
   body: string;
 };
 
 export const aiWorkflowPrinciples: Principle[] = [
   {
-    lead: "Builder vs. operator.",
-    body: "Claude Code is my \u201cbuilder\u201d \u2014 dispatched in bursts via parallel task delegation, no memory between sessions. A separate always-on layer (Hermes/cron) is the \u201coperator\u201d that runs what Claude Code builds, indefinitely, without needing to be re-explained. When I ask Claude Code to build something, I tell it explicitly to build the automation so the operator can run it forever, not just so it works once in my terminal. That split is the actual leverage move, not the model itself.",
+    lead: "Builder vs. operator",
+    icon: "split",
+    body: "Claude Code is my \u201cbuilder\u201d \u2014 dispatched in bursts via parallel task delegation, no memory between sessions. A separate always-on layer (Hermes/cron) is the \u201coperator\u201d that runs what Claude Code builds, indefinitely, without needing to be re-explained. That split is the actual leverage move, not the model itself.",
   },
   {
-    lead: "Parallel decomposition, not serial babysitting.",
-    body: "Independent workstreams run concurrently as separate delegated tasks, anchored to one shared audit-trail log. I decompose first \u2014 which pieces have no dependency on each other? \u2014 then fire them together. The shared log keeps parallel work honest: every task writes its own evidence to the same trail, so results reconcile instead of silently colliding.",
+    lead: "Parallel, not serial",
+    icon: "parallel",
+    body: "Independent workstreams run concurrently as separate delegated tasks, anchored to one shared audit-trail log. I decompose first \u2014 which pieces have no dependency on each other? \u2014 then fire them together so results reconcile instead of silently colliding.",
   },
   {
-    lead: "Standing skills instead of re-explaining context.",
-    body: "Recurring procedures \u2014 cron-gating conventions, verification checklists, approval-gate rules \u2014 live as skills that load on demand, not instructions I retype every session. Same principle as a team runbook: write it once correctly, let every future session inherit it.",
+    lead: "Standing skills",
+    icon: "skill",
+    body: "Recurring procedures \u2014 cron-gating conventions, verification checklists, approval-gate rules \u2014 live as skills that load on demand, not instructions I retype every session. Write it once correctly, let every future session inherit it.",
   },
   {
-    lead: "Monitor-gated cron, tiered delivery.",
-    body: "Scheduled jobs don't run an expensive agent on a fixed timer. A cheap, deterministic check runs first \u2014 did anything actually change? \u2014 and only wakes the full agent run if yes. Routine successful runs stay quiet (local log only); failures or human-only blockers escalate to a real notification. A job that pages me for every no-op tick trains me to ignore it.",
+    lead: "Gated cron",
+    icon: "gate",
+    body: "Scheduled jobs don't run an expensive agent on a fixed timer. A cheap, deterministic check runs first \u2014 did anything actually change? \u2014 and only wakes the full agent run if yes. Routine runs stay quiet; failures escalate to a real alert.",
   },
   {
-    lead: "Model choice by stakes, not vibes.",
-    body: "Cheap, fast models handle mechanical, low-stakes, easily-verified work. The strongest available model gets high-stakes work, judged against an explicit rubric \u2014 because \u201cthis looks easy\u201d and \u201cthis is cheap to get wrong\u201d aren't the same question.",
+    lead: "Model by stakes",
+    icon: "scale",
+    body: "Cheap, fast models handle mechanical, low-stakes, easily-verified work. The strongest available model gets high-stakes work, judged against an explicit rubric \u2014 because \u201ceasy\u201d and \u201ccheap to get wrong\u201d aren't the same question.",
   },
   {
-    lead: "Verify before done, no exceptions.",
-    body: "I don't accept an agent's self-report that something succeeded. I re-check the actual artifact: the live URL, the test run, the real log line. An agent narrating success and an agent having actually succeeded are different claims, and only one is checkable.",
+    lead: "Verify, don't trust",
+    icon: "check",
+    body: "I don't accept an agent's self-report that something succeeded. I re-check the actual artifact: the live URL, the test run, the real log line. Narrating success and actually succeeding are different claims, and only one is checkable.",
   },
   {
-    lead: "An adversarial critic with zero prior context, on every major deliverable.",
+    lead: "Cold-context critic",
+    icon: "critic",
     body: "Before anything is called finished, a cold review pass \u2014 no shared conversation history, no benefit of the doubt \u2014 checks it, specifically because a reviewer sharing context with the work tends to share its blind spots too.",
   },
   {
-    lead: "Security as infrastructure, not vigilance.",
-    body: "A pre-execution mod intercepts destructive commands before they run. Secrets never get echoed into logs or committed files. Push-time secret scanning runs on everything I ship. None of it depends on me remembering to be careful in the moment.",
+    lead: "Security by default",
+    icon: "shield",
+    body: "A pre-execution guard intercepts destructive commands before they run. Secrets never get echoed into logs or committed files. Push-time secret scanning runs on everything I ship \u2014 none of it depends on me remembering to be careful.",
   },
   {
-    lead: "Never idle, maximize parallelism.",
+    lead: "Never idle",
+    icon: "bolt",
     body: "If something could be running, it's running \u2014 idle time while one task could be started in parallel is a failure mode I actively correct for.",
   },
 ];
