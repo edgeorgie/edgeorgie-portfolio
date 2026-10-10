@@ -223,7 +223,7 @@ function PrincipleTile({
 /* nothing ever needs horizontal scrolling or shrinking to fit.       */
 /* ------------------------------------------------------------------ */
 
-function Arrow({ dashed = false }: { dashed?: boolean }) {
+function Arrow({ dashed = false, flowing = true, delay = 0 }: { dashed?: boolean; flowing?: boolean; delay?: number }) {
   return (
     <svg
       width="20"
@@ -241,6 +241,16 @@ function Arrow({ dashed = false }: { dashed?: boolean }) {
         strokeWidth="1.5"
         strokeDasharray={dashed ? "3 3" : undefined}
       />
+      {flowing && (
+        <motion.circle
+          r="1.6"
+          fill="var(--accent)"
+          initial={{ cy: 0, opacity: 0 }}
+          animate={{ cy: [0, 20], opacity: [0, 1, 1, 0] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: "linear", delay }}
+          cx="10"
+        />
+      )}
       <path d="M4 18 L10 26 L16 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -253,6 +263,7 @@ function FlowNode({
   tone = "default",
   compact = false,
   id,
+  href,
   onVisit,
 }: {
   icon: IconName;
@@ -261,6 +272,7 @@ function FlowNode({
   tone?: "default" | "accent" | "dim";
   compact?: boolean;
   id: string;
+  href?: string;
   onVisit?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -290,9 +302,20 @@ function FlowNode({
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="mono text-[9.5px] text-fg-dim leading-snug overflow-hidden max-w-[140px]"
+            className="mono text-[9.5px] text-fg-dim leading-snug overflow-hidden max-w-[140px] flex flex-col items-center gap-1"
           >
-            {caption}
+            <span>{caption}</span>
+            {href && (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="text-accent hover:underline"
+              >
+                open ↗
+              </a>
+            )}
           </motion.span>
         )}
       </AnimatePresence>
@@ -310,11 +333,42 @@ function BranchLabel({ children }: { children: React.ReactNode }) {
   return <span className="mono text-[10px] text-fg-dim/70 -mb-0.5">{children}</span>;
 }
 
-const TASKS: { icon: IconName; title: string; caption: string; id: string }[] = [
-  { icon: "task", title: "task A", caption: "independent workstream, no shared state", id: "task-a" },
-  { icon: "task", title: "task B", caption: "independent workstream, no shared state", id: "task-b" },
-  { icon: "task", title: "task C", caption: "routes through the cold-context critic before done", id: "task-c" },
-  { icon: "task", title: "task D", caption: "independent workstream, no shared state", id: "task-d" },
+const TASKS: { icon: IconName; title: string; caption: string; id: string; href?: string }[] = [
+  {
+    icon: "task",
+    title: "triage-desk",
+    caption: "webhook-triggered GitHub issue/PR triage bot — real webhooks, not a clicked demo",
+    id: "task-triage",
+    href: "https://github.com/edgeorgie/triage-desk",
+  },
+  {
+    icon: "task",
+    title: "eval-lab",
+    caption: "CLI + GitHub Action that evals prompts/agents — gates triage-desk's own CI",
+    id: "task-evallab",
+    href: "https://github.com/edgeorgie/eval-lab",
+  },
+  {
+    icon: "task",
+    title: "repoask-mcp",
+    caption: "MCP server, ask any public GitHub repo — routes through the cold-context critic before done",
+    id: "task-repoask",
+    href: "https://repoask-mcp.vercel.app",
+  },
+  {
+    icon: "task",
+    title: "ask-edgeorgie-mcp",
+    caption: "MCP server about this candidate — resume/projects as the retrieval corpus",
+    id: "task-askme",
+    href: "https://ask-edgeorgie-mcp.vercel.app",
+  },
+  {
+    icon: "task",
+    title: "crispy-profiling",
+    caption: "React re-render profiler — CLI + Action + MCP + Agent Skill, published to npm",
+    id: "task-crispy",
+    href: "https://www.npmjs.com/package/crispy-profiling",
+  },
 ];
 
 const ALL_NODE_IDS = [
@@ -335,9 +389,9 @@ const TOTAL_NODES = ALL_NODE_IDS.length;
 /* the 4 task boxes, and from each task box back down to "audit-trail log" */
 /* — instead of relying on prose/proximity to imply the parallel spread.   */
 function FanConnector({ direction }: { direction: "out" | "in" }) {
-  // 4 branches, evenly spaced across the row width, meeting at a single
+  // 5 branches, evenly spaced across the row width, meeting at a single
   // trunk point at top (fan-out) or bottom (fan-in).
-  const xs = [12.5, 37.5, 62.5, 87.5];
+  const xs = [10, 30, 50, 70, 90];
   return (
     <svg
       viewBox="0 0 100 26"
@@ -345,13 +399,22 @@ function FanConnector({ direction }: { direction: "out" | "in" }) {
       className="w-full max-w-[420px] sm:max-w-none h-6 text-fg-dim/70"
       aria-hidden="true"
     >
-      {xs.map((x) =>
-        direction === "out" ? (
-          <path key={x} d={`M50 0 C50 10, ${x} 10, ${x} 26`} fill="none" stroke="currentColor" strokeWidth="1" />
-        ) : (
-          <path key={x} d={`M${x} 0 C${x} 16, 50 16, 50 26`} fill="none" stroke="currentColor" strokeWidth="1" />
-        )
-      )}
+      {xs.map((x, i) => {
+        const d = direction === "out" ? `M50 0 C50 10, ${x} 10, ${x} 26` : `M${x} 0 C${x} 16, 50 16, 50 26`;
+        return (
+          <g key={x}>
+            <path d={d} fill="none" stroke="currentColor" strokeWidth="1" />
+            <motion.circle
+              r="1.3"
+              fill="var(--accent)"
+              initial={{ offsetDistance: "0%", opacity: 0 }}
+              animate={{ offsetDistance: ["0%", "100%"], opacity: [0, 1, 1, 0] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: "linear", delay: i * 0.25 }}
+              style={{ offsetPath: `path("${d}")` }}
+            />
+          </g>
+        );
+      })}
     </svg>
   );
 }
@@ -370,7 +433,7 @@ function WorkflowDiagram() {
     <div
       className="glass-panel rounded-xl p-5 md:p-10 flex flex-col items-center"
       role="img"
-      aria-label="Two-layer workflow: a cron scheduler feeds a change-detection gate that routes to either a quiet log or a real alert. Separately, a dispatcher fans out through a pre-execution guard into four parallel tasks that converge on one shared audit-trail log, with one task routing through a cold-context critic before being marked done. Tap any node for detail."
+      aria-label="Two-layer workflow: a cron scheduler feeds a change-detection gate that routes to either a quiet log or a real alert. Separately, a dispatcher fans out through a pre-execution guard into five parallel real shipped projects (triage-desk, eval-lab, repoask-mcp, ask-edgeorgie-mcp, crispy-profiling) that converge on one shared audit-trail log, with repoask-mcp routing through a cold-context critic before being marked done. Tap any node for detail, or its 'open' link for the live project."
     >
       <div className="w-full flex items-center justify-between mb-5">
         <LaneLabel>Operator · always-on</LaneLabel>
@@ -404,7 +467,7 @@ function WorkflowDiagram() {
 
       <FanConnector direction="out" />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full max-w-[420px] sm:max-w-none justify-items-center">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 w-full max-w-[420px] sm:max-w-none justify-items-center">
         {TASKS.map((t) => (
           <FlowNode key={t.id} {...t} compact onVisit={markVisited} />
         ))}
@@ -412,10 +475,10 @@ function WorkflowDiagram() {
 
       <FanConnector direction="in" />
 
-      <FlowNode id="audit-log" icon="db" title="audit-trail log" caption="one shared log — every task writes its evidence here" tone="accent" onVisit={markVisited} />
+      <FlowNode id="audit-log" icon="db" title="audit-trail log" caption="one shared log — every project writes its evidence here (progress.log / RELIABILITY-REPORT.md)" tone="accent" onVisit={markVisited} />
 
       <div className="flex flex-col items-center mt-8 pt-6 border-t border-dashed border-[var(--line)] w-full max-w-[260px]">
-        <BranchLabel>task C only, before marked done</BranchLabel>
+        <BranchLabel>repoask-mcp only, before marked done</BranchLabel>
         <Arrow dashed />
         <FlowNode id="critic" icon="critic" title="critic" caption="cold context — zero shared history, no benefit of the doubt" tone="accent" compact onVisit={markVisited} />
         <Arrow dashed />
