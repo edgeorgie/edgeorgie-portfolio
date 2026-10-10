@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 
 const ROLES = [
@@ -51,6 +51,9 @@ function TerminalBoot() {
 
 export function Hero() {
   const [roleIdx, setRoleIdx] = useState(0);
+  // Respect OS-level reduced-motion preference for the infinite scroll-hint
+  // bounce (see qa-reports/portfolio.md Issue #3).
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
     const t = setInterval(() => setRoleIdx((i) => (i + 1) % ROLES.length), 2200);
@@ -139,12 +142,23 @@ export function Hero() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1, duration: 0.8 }}
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 mono text-xs text-fg-dim/60 flex flex-col items-center gap-2"
+        // Hidden below md: on narrow/mobile viewports the hero content
+        // stack is tall enough that this absolutely-positioned hint
+        // lands directly on top of the primary CTA button (confirmed via
+        // getBoundingClientRect() overlap — qa-reports/portfolio.md
+        // Issue #2). Showing it only at md+ (where there's vertical
+        // room below the CTA) removes the overlap entirely rather than
+        // relying on a fragile spacing/z-index tweak.
+        className="hidden md:flex absolute bottom-10 left-1/2 -translate-x-1/2 mono text-xs text-fg-dim/60 flex-col items-center gap-2"
       >
         <span>scroll</span>
         <motion.span
-          animate={{ y: [0, 8, 0] }}
-          transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
+          animate={shouldReduceMotion ? { y: 0 } : { y: [0, 8, 0] }}
+          transition={
+            shouldReduceMotion
+              ? { duration: 0 }
+              : { repeat: Infinity, duration: 1.6, ease: "easeInOut" }
+          }
         >
           ↓
         </motion.span>

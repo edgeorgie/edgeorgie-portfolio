@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ReactNode } from "react";
 
 export function Reveal({
@@ -14,6 +14,16 @@ export function Reveal({
   className?: string;
   y?: number;
 }) {
+  // Respect the OS-level `prefers-reduced-motion` preference (WCAG 2.3.3):
+  // users with vestibular/motion sensitivity get content immediately,
+  // with no animated opacity/translate transition.
+  // See qa-reports/portfolio.md Issue #3.
+  const shouldReduceMotion = useReducedMotion();
+
+  if (shouldReduceMotion) {
+    return <div className={className}>{children}</div>;
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y }}
