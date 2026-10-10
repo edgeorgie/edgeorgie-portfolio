@@ -142,18 +142,19 @@ export const projects: Project[] = [
 export const experience = [
   {
     company: "Mercado Libre",
-    role: "Software Engineer",
+    role: "Senior Software Engineer",
     period: "November 2022 — Present",
     location: "Remote",
     summary:
       "LATAM e-commerce platform serving 4.3M+ users. Full-stack engineering across every surface — web, native Android/iOS, and smart TV/OTT — plus observability, clean architecture, and AI-agent workflow design.",
     bullets: [
-      "Owned 10+ initiatives end-to-end solo (100% individually owned) — 5 directly monetizable, the rest product-improvement — together reaching 4M+ users across LATAM; one shipped feature alone served 1.5M+ users in record time with zero production incidents.",
+      "Owned 10+ initiatives end-to-end solo, together reaching 4M+ users across LATAM; one shipped feature alone served 1.5M+ users with zero production incidents.",
       "Led cross-platform initiatives spanning web, mobile WebViews, and AI-assisted native development for Android and iOS, using Spec-Driven Development and scalable frontend architecture.",
-      "Shipped smart TV and OTT surfaces: web receivers for LG, Samsung (Tizen), Vidaa, and TitanOS, plus Chromecast Web Receiver development for video streaming.",
+      "Built backend APIs with caching, idempotency, and low-latency design underpinning those same web, mobile, and TV surfaces.",
+      "Shipped smart TV and OTT surfaces: web receivers for LG, Samsung (Tizen), and a Chromecast Web Receiver, for video streaming.",
       "Implemented observability and monitoring using Kibana, New Relic, Datadog, and Grafana aligned with SRE practices (SLA/SLI/SLO).",
       "Applied Clean Architecture and Domain-Driven Design while refactoring legacy systems and improving code quality.",
-      "Designed AI workflows and agent-based architectures, defining agent rules, skills, and orchestration across services.",
+      "Designed and owned AI-agent architectures end-to-end — defining agent rules, skills, and cross-service orchestration — as a sustained, multi-year production responsibility since Nov 2022, not a one-off project.",
     ],
   },
   {

@@ -73,7 +73,7 @@ export function Hero() {
           transition={{ duration: 0.5 }}
           className="mono text-xs md:text-sm text-accent tracking-widest uppercase mb-6"
         >
-          Edwin Jorge — Software Engineer
+          Edwin Jorge — Senior Software Engineer
         </motion.p>
 
         <motion.h1
@@ -94,7 +94,7 @@ export function Hero() {
           className="mt-8 max-w-2xl"
         >
           <p className="text-lg md:text-xl text-fg-dim leading-relaxed">
-            Senior engineer at Mercado Libre, shipping{" "}
+            Senior Software Engineer at Mercado Libre, shipping{" "}
             <span className="text-fg">
               {ROLES[roleIdx]}
             </span>{" "}
