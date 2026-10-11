@@ -8,89 +8,163 @@ import { Icon, type IconName } from "./Icon";
 import { aiWorkflowPrinciples, type PrincipleIcon } from "@/data/content";
 
 /* ------------------------------------------------------------------ */
-/* Principle tiles: icon + short label, full sentence behind a toggle. */
+/* The pipeline. Three lanes, no project names: this is the process    */
+/* every piece of work goes through, not a list of what was built.     */
+/* Each node's caption is the operating rule behind it.                */
 /* ------------------------------------------------------------------ */
 
-function PrincipleTile({ lead, icon, body, index }: { lead: string; icon: PrincipleIcon; body: string; index: number }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <Reveal delay={(index % 3) * 0.05} y={18}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className={`group w-full h-full text-left rounded-xl border px-4 py-5 flex flex-col gap-3 transition-colors duration-300 ${
-          open ? "border-accent bg-accent/5" : "border-line bg-bg-soft hover:border-line-strong"
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <span
-            className={`inline-flex items-center justify-center w-9 h-9 rounded-lg border transition-colors duration-300 ${
-              open ? "border-accent text-accent" : "border-line text-fg-dim"
-            }`}
-          >
-            <Icon name={icon} />
-          </span>
-          <span className="font-mono text-[10px] text-fg-faint tnum">{String(index + 1).padStart(2, "0")}</span>
-        </div>
-        <h3 className="text-base font-semibold text-fg tracking-tight leading-snug">{lead}</h3>
-        <AnimatePresence initial={false}>
-          {open && (
-            <m.p
-              key="body"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-              className="text-[13px] text-fg-dim leading-relaxed overflow-hidden"
-            >
-              {body}
-            </m.p>
-          )}
-        </AnimatePresence>
-        <span className="font-mono text-[10px] text-fg-faint group-hover:text-accent transition-colors mt-auto">{open ? "hide" : "read"}</span>
-      </button>
-    </Reveal>
-  );
-}
+type Tone = "default" | "accent" | "dim";
 
-/* ------------------------------------------------------------------ */
-/* Flow diagram: a vertical stepper of tappable nodes. Flow is shown   */
-/* with a CSS stroke-dash animation (.flow-line) rather than JS-driven */
-/* particles, so it costs nothing on the main thread and the global    */
-/* reduced-motion rule stops it automatically.                         */
+type Node = {
+  id: string;
+  icon: IconName;
+  title: string;
+  caption: string;
+  tone?: Tone;
+};
+
+type Lane = {
+  id: string;
+  label: string;
+  sub: string;
+  handoff: string;
+  nodes: Node[];
+  /** Optional two-way branch rendered after the node whose id matches `after`. */
+  branch?: { after: string; left: { label: string; node: Node }; right: { label: string; node: Node } };
+  tail?: Node[];
+};
+
+const LANES: Lane[] = [
+  {
+    id: "operator",
+    label: "Operator",
+    sub: "always-on · Hermes on cron",
+    handoff: "wakes a build run only when something actually changed",
+    nodes: [
+      { id: "cron", icon: "clock", title: "cron tick", caption: "A fixed schedule, but it never runs the expensive agent on its own." },
+      {
+        id: "gate",
+        icon: "gate",
+        title: "cheap change check",
+        caption: "Deterministic, no model call: did the input actually change since last time?",
+        tone: "accent",
+      },
+    ],
+    branch: {
+      after: "gate",
+      left: { label: "no", node: { id: "quiet-log", icon: "file", title: "quiet log", caption: "Routine run, nothing to say, no ping.", tone: "dim" } },
+      right: {
+        label: "yes",
+        node: { id: "wake", icon: "bolt", title: "wake a build run", caption: "The full pipeline on the right runs, with the change as its brief.", tone: "accent" },
+      },
+    },
+    tail: [
+      {
+        id: "alert",
+        icon: "bell",
+        title: "real alert",
+        caption: "Only a failure or a human-only blocker escalates to me. Successes stay quiet.",
+        tone: "accent",
+      },
+    ],
+  },
+  {
+    id: "build",
+    label: "Build",
+    sub: "parallel bursts · Claude Code",
+    handoff: "every result lands in one audit trail with its evidence",
+    nodes: [
+      { id: "brief", icon: "task", title: "brief", caption: "Goal plus acceptance criteria, written before any agent starts." },
+      {
+        id: "decompose",
+        icon: "fork",
+        title: "decompose",
+        caption: "Map which pieces have no dependency on each other; those run together.",
+      },
+      {
+        id: "route",
+        icon: "scale",
+        title: "route by stakes",
+        caption: "Cheap, fast models for mechanical, easily verified work. The strongest model plus an explicit rubric for high-stakes work.",
+        tone: "accent",
+      },
+      {
+        id: "skills",
+        icon: "skill",
+        title: "load standing skills",
+        caption: "Checklists, gating conventions and approval rules, written once and loaded on demand instead of retyped.",
+      },
+      {
+        id: "guard",
+        icon: "shield",
+        title: "guard",
+        caption: "Pre-execution interception of destructive commands. Secrets never echo into logs or files.",
+        tone: "accent",
+      },
+      {
+        id: "agents",
+        icon: "parallel",
+        title: "agents × N",
+        caption: "Isolated contexts, concurrent. If something could be running, it is: idle time is a failure mode.",
+        tone: "accent",
+      },
+      {
+        id: "audit-log",
+        icon: "db",
+        title: "audit-trail log",
+        caption: "One shared log. Every result carries a pointer to its evidence: URL, test run, log line.",
+      },
+    ],
+  },
+  {
+    id: "verify",
+    label: "Verify",
+    sub: "before anything is called done",
+    handoff: "fail loops back to the agents; pass ships",
+    nodes: [
+      {
+        id: "critic",
+        icon: "critic",
+        title: "cold critic",
+        caption: "A fresh context with no shared history reviews the work. Shared context shares blind spots.",
+        tone: "accent",
+      },
+      {
+        id: "artifact",
+        icon: "check",
+        title: "verify the artifact",
+        caption: "The live URL, the test run, the real log line. An agent saying it worked is not evidence.",
+        tone: "accent",
+      },
+    ],
+    branch: {
+      after: "artifact",
+      left: { label: "fail", node: { id: "fix", icon: "bolt", title: "back to agents", caption: "Findings become a new brief for the same parallel loop.", tone: "dim" } },
+      right: {
+        label: "pass",
+        node: { id: "ship", icon: "package", title: "ship", caption: "Push-time secret scanning and CI gates run on everything, so safety never depends on remembering." },
+      },
+    },
+  },
+];
+
+const TOTAL_NODES = LANES.reduce((n, l) => n + l.nodes.length + (l.branch ? 2 : 0) + (l.tail?.length ?? 0), 0);
+
 /* ------------------------------------------------------------------ */
 
 function Arrow({ dashed = false }: { dashed?: boolean }) {
   return (
-    <svg width="20" height="28" viewBox="0 0 20 28" className="text-fg-faint shrink-0" aria-hidden="true">
-      <line x1="10" y1="0" x2="10" y2="20" stroke="currentColor" strokeWidth="1.5" strokeDasharray={dashed ? "3 3" : undefined} />
-      <line x1="10" y1="0" x2="10" y2="20" stroke="var(--color-accent)" strokeWidth="1.5" className="flow-line" opacity="0.8" />
-      <path d="M4 18 L10 26 L16 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="20" height="24" viewBox="0 0 20 24" className="text-fg-faint shrink-0" aria-hidden="true">
+      <line x1="10" y1="0" x2="10" y2="16" stroke="currentColor" strokeWidth="1.5" strokeDasharray={dashed ? "3 3" : undefined} />
+      <line x1="10" y1="0" x2="10" y2="16" stroke="var(--color-accent)" strokeWidth="1.5" className="flow-line" opacity="0.8" />
+      <path d="M4 14 L10 22 L16 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
-function FlowNode({
-  icon,
-  title,
-  caption,
-  tone = "default",
-  compact = false,
-  id,
-  href,
-  onVisit,
-}: {
-  icon: IconName;
-  title: string;
-  caption: string;
-  tone?: "default" | "accent" | "dim";
-  compact?: boolean;
-  id: string;
-  href?: string;
-  onVisit?: (id: string) => void;
-}) {
+function FlowNode({ node, compact = false, onVisit }: { node: Node; compact?: boolean; onVisit: (id: string) => void }) {
   const [open, setOpen] = useState(false);
+  const tone = node.tone ?? "default";
   const borderTone = tone === "accent" ? "border-accent/70 text-accent" : tone === "dim" ? "border-line text-fg-dim" : "border-line text-fg";
   return (
     <m.button
@@ -98,15 +172,15 @@ function FlowNode({
       whileTap={{ scale: 0.97 }}
       onClick={() => {
         setOpen((o) => !o);
-        onVisit?.(id);
+        onVisit(node.id);
       }}
       aria-expanded={open}
-      className={`relative flex flex-col items-center justify-center gap-1.5 text-center rounded-xl border bg-bg px-3 ${
-        compact ? "py-3 min-w-[84px]" : "py-4 min-w-[140px]"
+      className={`relative flex flex-col items-center justify-center gap-1.5 text-center rounded-xl border bg-bg px-3 w-full ${
+        compact ? "py-3 max-w-[150px]" : "py-3.5 max-w-[220px]"
       } ${borderTone} ${open ? "shadow-[0_0_0_1px_var(--color-accent)]" : ""} transition-shadow duration-300`}
     >
-      <Icon name={icon} className={compact ? "w-4 h-4" : "w-5 h-5"} />
-      <span className={`font-mono ${compact ? "text-[10px]" : "text-[11px]"} leading-tight`}>{title}</span>
+      <Icon name={node.icon} className={compact ? "w-4 h-4" : "w-5 h-5"} />
+      <span className={`font-mono ${compact ? "text-[10px]" : "text-[11px]"} leading-tight`}>{node.title}</span>
       <AnimatePresence initial={false}>
         {open && (
           <m.span
@@ -115,14 +189,9 @@ function FlowNode({
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="font-mono text-[10px] text-fg-dim leading-snug overflow-hidden max-w-[150px] flex flex-col items-center gap-1"
+            className="font-mono text-[10.5px] text-fg-dim leading-snug overflow-hidden"
           >
-            <span>{caption}</span>
-            {href && (
-              <a href={href} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-accent hover:underline">
-                open ↗
-              </a>
-            )}
+            {node.caption}
           </m.span>
         )}
       </AnimatePresence>
@@ -130,39 +199,47 @@ function FlowNode({
   );
 }
 
-function LaneLabel({ children }: { children: React.ReactNode }) {
-  return <span className="kicker text-[11px] mb-1">{children}</span>;
-}
-
-function BranchLabel({ children }: { children: React.ReactNode }) {
-  return <span className="font-mono text-[10px] text-fg-faint -mb-0.5">{children}</span>;
-}
-
-const TASKS: { icon: IconName; title: string; caption: string; id: string; href?: string }[] = [
-  { icon: "task", title: "triage-desk", caption: "webhook-triggered GitHub issue triage bot — real webhooks, not a clicked demo", id: "task-triage", href: "https://github.com/edgeorgie/triage-desk" },
-  { icon: "task", title: "eval-lab", caption: "CLI + GitHub Action that evals prompts/agents — gates triage-desk's own CI", id: "task-evallab", href: "https://github.com/edgeorgie/eval-lab" },
-  { icon: "task", title: "repoask-mcp", caption: "MCP server, ask any public GitHub repo — routes through the cold-context critic before done", id: "task-repoask", href: "https://repoask-mcp.vercel.app" },
-  { icon: "task", title: "ask-edgeorgie-mcp", caption: "MCP server about this candidate — resume/projects as the retrieval corpus", id: "task-askme", href: "https://ask-edgeorgie-mcp.vercel.app" },
-  { icon: "task", title: "crispy-profiling", caption: "React re-render profiler — CLI + Action + MCP + Agent Skill, published to npm", id: "task-crispy", href: "https://www.npmjs.com/package/crispy-profiling" },
-];
-
-const TOTAL_NODES = 9 + TASKS.length;
-
-/** Fan-out/fan-in connector drawn with real lines; flow via CSS dash animation. */
-function FanConnector({ direction }: { direction: "out" | "in" }) {
-  const xs = [10, 30, 50, 70, 90];
+function LaneView({ lane, index, onVisit }: { lane: Lane; index: number; onVisit: (id: string) => void }) {
   return (
-    <svg viewBox="0 0 100 26" preserveAspectRatio="none" className="w-full max-w-[420px] sm:max-w-none h-6 text-fg-faint" aria-hidden="true">
-      {xs.map((x) => {
-        const d = direction === "out" ? `M50 0 C50 10, ${x} 10, ${x} 26` : `M${x} 0 C${x} 16, 50 16, 50 26`;
-        return (
-          <g key={x}>
-            <path d={d} fill="none" stroke="currentColor" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-            <path d={d} fill="none" stroke="var(--color-accent)" strokeWidth="1" vectorEffect="non-scaling-stroke" className="flow-line" opacity="0.7" />
-          </g>
-        );
-      })}
-    </svg>
+    <div className="flex flex-col items-center rounded-xl border border-line/70 bg-bg-soft/40 p-4 sm:p-5">
+      <div className="w-full mb-5">
+        <p className="kicker text-[11px]">
+          <span className="tnum">0{index + 1}</span> · {lane.label}
+        </p>
+        <p className="font-mono text-[10.5px] text-fg-faint mt-1">{lane.sub}</p>
+      </div>
+
+      {lane.nodes.map((node, i) => (
+        <div key={node.id} className="flex flex-col items-center w-full">
+          {i > 0 && <Arrow />}
+          <FlowNode node={node} onVisit={onVisit} />
+        </div>
+      ))}
+
+      {lane.branch && (
+        <div className="flex items-start gap-4 sm:gap-6 mt-1 w-full justify-center">
+          {[lane.branch.left, lane.branch.right].map((b) => (
+            <div key={b.node.id} className="flex flex-col items-center flex-1 max-w-[150px]">
+              <span className="font-mono text-[10px] text-fg-faint -mb-0.5">{b.label}</span>
+              <Arrow />
+              <FlowNode node={b.node} compact onVisit={onVisit} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {lane.tail?.map((node) => (
+        <div key={node.id} className="flex flex-col items-center w-full">
+          <Arrow dashed />
+          <FlowNode node={node} compact onVisit={onVisit} />
+        </div>
+      ))}
+
+      <p className="mt-6 pt-4 border-t border-dashed border-line w-full font-mono text-[10.5px] text-fg-faint text-center leading-snug">
+        {lane.handoff}
+        <span className="lg:inline hidden"> →</span>
+      </p>
+    </div>
   );
 }
 
@@ -178,72 +255,74 @@ function WorkflowDiagram() {
     });
 
   return (
-    <div className="panel p-5 md:p-10 flex flex-col items-center" role="group" aria-label="Workflow diagram" aria-describedby={descId}>
+    <div className="panel p-4 sm:p-6 md:p-8" role="group" aria-label="How a piece of work moves through my AI pipeline" aria-describedby={descId}>
       <p id={descId} className="sr-only">
-        Two-layer workflow. Operator layer: a cron scheduler feeds a change-detection gate that routes to either a quiet log or a real
-        alert. Builder layer: a dispatcher fans out through a pre-execution guard into five parallel projects (triage-desk, eval-lab,
-        repoask-mcp, ask-edgeorgie-mcp, crispy-profiling) that converge on one shared audit-trail log; repoask-mcp routes through a
-        cold-context critic before being marked done. Each node is a button that reveals a one-line description.
+        Three lanes. Operator, always on: a cron tick runs a cheap deterministic change check; nothing changed goes to a
+        quiet log, a change wakes a build run, and only failures escalate to a real alert. Build, in parallel bursts: a
+        brief with acceptance criteria is decomposed into independent pieces, routed to a model by stakes, given standing
+        skills, passed through a pre-execution guard, run by several isolated agents concurrently, and every result lands in
+        one audit-trail log with its evidence. Verify, before anything is called done: a cold-context critic reviews the
+        work, the artifact itself is verified against the live URL, test run or log line; a fail loops back to the agents,
+        a pass ships through secret scanning and CI. Each node is a button that reveals the rule behind it.
       </p>
-      <div className="w-full flex items-center justify-between mb-5">
-        <LaneLabel>Operator · always-on</LaneLabel>
+      <div className="flex items-center justify-between mb-5">
+        <p className="font-mono text-[11px] text-fg-dim">one piece of work, end to end · tap any node</p>
         <span className="font-mono text-[10px] text-fg-faint tnum" aria-live="polite">
           {visited.size} of {TOTAL_NODES} nodes explored
         </span>
       </div>
-      <FlowNode id="cron" icon="clock" title="cron scheduler" caption="runs on a fixed schedule" onVisit={markVisited} />
-      <Arrow />
-      <FlowNode id="gate" icon="gate" title="change detected?" caption="cheap, deterministic check — gates the expensive run" tone="accent" onVisit={markVisited} />
-
-      <div className="flex items-start gap-8 mt-1">
-        <div className="flex flex-col items-center">
-          <BranchLabel>no</BranchLabel>
-          <Arrow />
-          <FlowNode id="quiet-log" icon="file" title="quiet log" caption="routine run, no ping" tone="dim" compact onVisit={markVisited} />
-        </div>
-        <div className="flex flex-col items-center">
-          <BranchLabel>yes</BranchLabel>
-          <Arrow />
-          <FlowNode id="real-alert" icon="bell" title="real alert" caption="human-only blocker" tone="accent" compact onVisit={markVisited} />
-        </div>
-      </div>
-
-      <div className="my-10 h-px w-16 bg-line" aria-hidden="true" />
-
-      <LaneLabel>Builder · bursts</LaneLabel>
-      <FlowNode id="dispatcher" icon="fork" title="dispatcher" caption="decomposes work into independent pieces" onVisit={markVisited} />
-      <Arrow dashed />
-      <FlowNode id="guard" icon="shield" title="guard" caption="pre-execution check, before anything runs" tone="accent" onVisit={markVisited} />
-
-      <FanConnector direction="out" />
-
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 w-full max-w-[420px] sm:max-w-none justify-items-center">
-        {TASKS.map((t) => (
-          <FlowNode key={t.id} {...t} compact onVisit={markVisited} />
+      <div className="grid gap-4 lg:grid-cols-3 lg:gap-5 items-start">
+        {LANES.map((lane, i) => (
+          <LaneView key={lane.id} lane={lane} index={i} onVisit={markVisited} />
         ))}
       </div>
-
-      <FanConnector direction="in" />
-
-      <FlowNode
-        id="audit-log"
-        icon="db"
-        title="audit-trail log"
-        caption="one shared log — every project writes its evidence here (progress.log / RELIABILITY-REPORT.md)"
-        tone="accent"
-        onVisit={markVisited}
-      />
-
-      <div className="flex flex-col items-center mt-8 pt-6 border-t border-dashed border-line w-full max-w-[260px]">
-        <BranchLabel>repoask-mcp only, before marked done</BranchLabel>
-        <Arrow dashed />
-        <FlowNode id="critic" icon="critic" title="critic" caption="cold context — zero shared history, no benefit of the doubt" tone="accent" compact onVisit={markVisited} />
-        <Arrow dashed />
-        <FlowNode id="done" icon="check" title="done" caption="only after the critic pass clears it" compact onVisit={markVisited} />
-      </div>
-
-      <p className="font-mono text-[10px] text-fg-faint mt-8 text-center">tap any node to see what it does</p>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* The nine operating rules: first sentence visible, rest on demand.    */
+/* ------------------------------------------------------------------ */
+
+function splitLead(body: string): [string, string] {
+  const idx = body.indexOf(". ");
+  if (idx === -1) return [body, ""];
+  return [body.slice(0, idx + 1), body.slice(idx + 2)];
+}
+
+function PrincipleRow({ lead, icon, body, index }: { lead: string; icon: PrincipleIcon; body: string; index: number }) {
+  const [open, setOpen] = useState(false);
+  const [first, rest] = splitLead(body);
+  return (
+    <li className="border-t border-line py-4">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="group w-full text-left flex gap-4 items-start rounded-md">
+        <span className="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-lg border border-line text-fg-dim group-hover:text-accent group-hover:border-accent/60 transition-colors">
+          <Icon name={icon} className="w-4 h-4" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-baseline gap-3">
+            <span className="font-mono text-[10px] text-fg-faint tnum">{String(index + 1).padStart(2, "0")}</span>
+            <span className="text-[15px] font-semibold text-fg tracking-tight">{lead}</span>
+          </span>
+          <span className="block mt-1 text-[13.5px] text-fg-dim leading-relaxed">{first}</span>
+          <AnimatePresence initial={false}>
+            {open && rest && (
+              <m.span
+                key="rest"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                className="block text-[13.5px] text-fg-dim leading-relaxed overflow-hidden"
+              >
+                {rest}
+              </m.span>
+            )}
+          </AnimatePresence>
+          {rest && <span className="block mt-1 font-mono text-[10px] text-fg-faint group-hover:text-accent transition-colors">{open ? "less" : "more"}</span>}
+        </span>
+      </button>
+    </li>
   );
 }
 
@@ -259,19 +338,29 @@ export function AIWorkflow() {
                 AI, run like <em>production</em>.
               </>
             }
-            lede="Not a chat window. An orchestration layer with its own operating discipline: scheduled, gated, parallel, verified and reviewed cold, the same way I run any system I'm accountable for. Every project above went through it."
+            lede="Not a chat window. One pipeline every piece of work goes through: an always-on operator that only wakes the expensive run when something actually changed, builder agents working in parallel behind a guard and a shared audit trail, and a cold-context critic plus artifact verification before anything is called done."
           />
         </Reveal>
 
-        <Reveal delay={0.05} className="mt-14 md:mt-20">
+        <Reveal delay={0.05} className="mt-14 md:mt-16">
           <WorkflowDiagram />
         </Reveal>
 
-        <div className="mt-10 grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-          {aiWorkflowPrinciples.map((p, i) => (
-            <PrincipleTile key={p.lead} lead={p.lead} icon={p.icon} body={p.body} index={i} />
-          ))}
-        </div>
+        <Reveal className="mt-14 md:mt-16">
+          <div className="grid gap-8 lg:grid-cols-[260px_1fr] lg:gap-14">
+            <div>
+              <p className="kicker">Operating rules</p>
+              <p className="mt-3 text-sm text-fg-dim leading-relaxed">
+                The nine rules the pipeline encodes. Each one exists because something went wrong without it.
+              </p>
+            </div>
+            <ol className="grid gap-x-10 md:grid-cols-2 border-b border-line">
+              {aiWorkflowPrinciples.map((p, i) => (
+                <PrincipleRow key={p.lead} lead={p.lead} icon={p.icon} body={p.body} index={i} />
+              ))}
+            </ol>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
