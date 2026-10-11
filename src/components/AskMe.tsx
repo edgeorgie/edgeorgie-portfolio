@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import ReactMarkdown from "react-markdown";
 import posthog from "posthog-js";
-import { Reveal, usePrefersReducedMotion } from "./Reveal";
+import { Reveal } from "./Reveal";
+import { StreamingAnswer } from "./StreamingAnswer";
 
 const MCP_CONFIG = `{
   "mcpServers": {
@@ -48,81 +48,6 @@ function sourceAccent(source: string) {
     return "text-amber-300 border-amber-400/30 bg-amber-400/5";
   if (source.includes("RELIABILITY")) return "text-accent border-accent/30 bg-accent/5";
   return "text-fg-dim border-[var(--line)]";
-}
-
-/** Reveals `text` word-by-word to look like a live model stream. */
-function StreamingAnswer({ text, onDone }: { text: string; onDone?: () => void }) {
-  const words = text.split(/(\s+)/);
-  const [count, setCount] = useState(0);
-
-  // Respect the OS-level `prefers-reduced-motion` preference (WCAG 2.3.3):
-  // a word-by-word reveal of a long answer is ~250 sequential renders of
-  // moving text, so reduced-motion users get the whole answer at once.
-  // Uses the same `useSyncExternalStore` hook as `Reveal`, whose
-  // server/first-paint snapshot defaults to reduced-motion ON — the safe,
-  // content-is-visible side to be wrong about. (No StreamingAnswer exists
-  // during SSR/hydration anyway: the transcript is empty until a visitor
-  // asks something, so by first mount the real preference is known.)
-  const prefersReducedMotion = usePrefersReducedMotion();
-
-  // Reset the stream when `text` changes, using React's documented
-  // "adjust state during render" pattern rather than an effect. The
-  // react-hooks/set-state-in-effect lint error this replaced was correct:
-  // `setCount(0)` inside `useEffect([text])` is the wrong pattern, because
-  // the reset lands only *after* a render has already sliced the new text
-  // with the stale count. Adjusting during render re-renders before paint.
-  //
-  // Note this branch is defensive and currently unreachable: the chat
-  // history is append-only, turns are keyed by index, and `turn.a.answer`
-  // is never mutated, so a new answer always mounts a *fresh*
-  // StreamingAnswer with count=0 rather than feeding changed `text` into a
-  // mounted one. It is kept so the component stays correct if it is ever
-  // reused with a `text` prop that does change in place.
-  const [renderedText, setRenderedText] = useState(text);
-  if (renderedText !== text) {
-    setRenderedText(text);
-    setCount(0);
-  }
-
-  useEffect(() => {
-    // No reveal timers at all under reduced motion — the full text is
-    // already rendered below; just report completion so the citation
-    // chips (gated on `streamed`) still appear.
-    if (prefersReducedMotion || count >= words.length) {
-      onDone?.();
-      return;
-    }
-    const t = setTimeout(() => setCount((c) => c + 1), 10 + Math.random() * 14);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [count, words.length, prefersReducedMotion]);
-
-  const shown = prefersReducedMotion ? text : words.slice(0, count).join("");
-  const done = prefersReducedMotion || count >= words.length;
-
-  return (
-    <div className="prose-ask text-fg-dim text-sm md:text-base leading-relaxed">
-      <ReactMarkdown
-        components={{
-          // Keep headings visually modest inside the chat bubble (don't let
-          // a model-emitted "## eval-lab" look like a page section heading).
-          h1: ({ children }) => <p className="font-semibold text-fg mt-2 mb-1">{children}</p>,
-          h2: ({ children }) => <p className="font-semibold text-fg mt-2 mb-1">{children}</p>,
-          h3: ({ children }) => <p className="font-semibold text-fg mt-2 mb-1">{children}</p>,
-          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-          ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
-          ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
-          code: ({ children }) => (
-            <code className="mono text-xs bg-bg-soft/80 px-1 py-0.5 rounded">{children}</code>
-          ),
-          strong: ({ children }) => <strong className="text-fg font-semibold">{children}</strong>,
-        }}
-      >
-        {shown}
-      </ReactMarkdown>
-      {!done && <span className="caret inline-block w-[2px] h-[1em] bg-accent ml-0.5 align-middle" />}
-    </div>
-  );
 }
 
 export function AskMe() {
@@ -290,6 +215,15 @@ export function AskMe() {
                         <span className="mono text-xs text-fg-dim shrink-0 mt-1">mcp &gt;</span>
                         <div className="flex-1">
                           <StreamingAnswer
+                            // React's documented way to reset state: a new
+                            // answer string mounts a fresh StreamingAnswer at
+                            // reveal position 0 instead of continuing from the
+                            // previous answer's position. The transcript is
+                            // append-only today, so `turn.a.answer` does not
+                            // change under a mounted instance — this key makes
+                            // that a guarantee of the call site rather than an
+                            // assumption inside the component.
+                            key={turn.a.answer}
                             text={turn.a.answer}
                             onDone={() => {
                               if (!turn.streamed) {
