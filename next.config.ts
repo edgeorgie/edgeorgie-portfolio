@@ -75,21 +75,45 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
   async rewrites() {
     // Same-origin proxy for analytics: tracking blockers filter by domain,
-    // and the CSP can stay pinned to 'self'. Order matters: static and
-    // array before the catch-all.
+    // and the CSP can stay pinned to 'self'.
     //
-    // Gated on the key. An UNCONDITIONAL rewrite is not "a no-op until a key
-    // is set": the proxy is a server-side route that exists whether or not the
-    // client ever calls it, so without this guard the deployed site forwards
-    // ANY body posted to /ingest/* straight to PostHog's public ingestion API
-    // — an open relay on this domain that costs nothing to abuse and whose
-    // traffic is attributed to this origin. Nothing on the client side can
-    // close it, which is why #41's bundle work left it open.
+    // TWO independent guards, because each closes a hole the other cannot.
+    //
+    // 1. Gated on the key. An UNCONDITIONAL rewrite is not "a no-op until a
+    //    key is set": the proxy is a server-side route that exists whether or
+    //    not the client ever calls it, so without this guard the deployed site
+    //    forwards ANY body posted to /ingest/* straight to PostHog's public
+    //    ingestion API — an open relay on this domain that costs nothing to
+    //    abuse and whose traffic is attributed to this origin. Nothing on the
+    //    client side can close it, which is why #41's bundle work left it open.
+    //
+    // 2. An explicit path ALLOWLIST rather than a `/ingest/:path*` catch-all.
+    //    Guard 1 only holds while analytics is off; phase 1 of
+    //    docs/POSTHOG_PLAN.md sets the key on Vercel, and from that moment a
+    //    catch-all reopens the identical relay permanently — PostHog's
+    //    ingestion endpoints accept an unrecognised `api_key` with
+    //    `200 {"status":"Ok"}`, so no token check downstream limits who can
+    //    post through it. A catch-all also proxies PostHog's AUTHENTICATED
+    //    surface (`/api/projects/`, `/api/users/@me/`) through this origin,
+    //    where any future credential-bearing path becomes reachable from here.
+    //    The allowlist below is exactly what posthog-js requests under this
+    //    app's configuration; anything else 404s at the edge. Adding a
+    //    capability (surveys → `/api/surveys/`, session replay → `/s/`) is a
+    //    deliberate edit here, not an accident of a wildcard.
     if (!posthogEnabled) return [];
     return [
+      // Assets host: the SDK bundle and the per-token remote config.
       { source: "/ingest/static/:path*", destination: "https://us-assets.i.posthog.com/static/:path*" },
       { source: "/ingest/array/:path*", destination: "https://us-assets.i.posthog.com/array/:path*" },
-      { source: "/ingest/:path*", destination: "https://us.i.posthog.com/:path*" },
+      // Ingestion host, one rule per endpoint posthog-js actually calls under
+      // this configuration — verified against the pinned SDK's own source
+      // (`analyticsDefaultEndpoint = "/e/"`, flags at `/flags/?v=2`, internal
+      // telemetry at `/i/v1/*`). The legacy `/decide/` path is deliberately
+      // absent: `defaults: "2026-08-30"` uses `/flags/`, and an unused relay
+      // path is still a relay path.
+      { source: "/ingest/e/", destination: "https://us.i.posthog.com/e/" },
+      { source: "/ingest/flags/", destination: "https://us.i.posthog.com/flags/" },
+      { source: "/ingest/i/v1/:path*", destination: "https://us.i.posthog.com/i/v1/:path*" },
     ];
   },
   images: {
