@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { COMMANDS, isCommand, runCommand } from "./console";
 import { projects, moreProjects, experience } from "@/data/content";
 import { links } from "@/lib/site";
@@ -65,5 +67,29 @@ describe("console commands", () => {
     if (r?.kind !== "output") throw new Error("expected output");
     expect(r.lines[0].text).toContain("command not found: /rm -rf");
     expect(r.lines.some((l) => l.text.includes("/help"))).toBe(true);
+  });
+
+  it("no copy anywhere states a project count that the data contradicts", () => {
+    // Guards the defect class this test was added for: a hand-written number
+    // ("6", "fifteen", "Nine") in one surface drifting out of step with the
+    // arrays once a project is added. Every count-bearing string must be
+    // derived, so the only safe assertion is that no stale spelled-out or
+    // literal count survives in the files that render these claims.
+    const root = resolve(__dirname, "../..");
+    const surfaces = ["src/components/Hero.tsx", "src/components/MoreProjects.tsx", "src/lib/console.ts"];
+    const stale = /\b(six|nine|fifteen)\b|value="\d+"/i;
+    for (const f of surfaces) {
+      // The spelled-out lookup table and comments are data/prose, not claims;
+      // everything else in these files is rendered copy and must be derived.
+      const copy = readFileSync(resolve(root, f), "utf8")
+        .split("\n")
+        .filter((l) => !l.includes("COUNT_WORD = [") && !l.trimStart().startsWith("*") && !l.trimStart().startsWith("/*"))
+        .join("\n");
+      expect(copy, `${f} hard-codes a project count`).not.toMatch(stale);
+    }
+
+    // And the derived values are the real ones.
+    const projectsCmd = COMMANDS.find((c) => c.name === "projects");
+    expect(projectsCmd?.description).toContain(String(projects.length + moreProjects.length));
   });
 });
