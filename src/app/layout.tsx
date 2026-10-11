@@ -6,6 +6,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 import { MotionProvider } from "@/components/MotionProvider";
 import { SITE_URL, links, person } from "@/lib/site";
+import portrait from "@/assets/portrait.webp";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -91,6 +92,7 @@ const jsonLd = {
       worksFor: { "@type": "Organization", name: person.company },
       email: links.mailto,
       url: SITE_URL,
+      image: `${SITE_URL}${portrait.src}`,
       address: { "@type": "PostalAddress", addressLocality: "Barranquilla", addressCountry: "CO" },
       sameAs: [links.github, links.linkedin],
       knowsAbout: [
