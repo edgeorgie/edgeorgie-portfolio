@@ -1,37 +1,36 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import posthog from "posthog-js";
+import { useState, useRef, useEffect, useId, useSyncExternalStore } from "react";
+import { m, AnimatePresence } from "framer-motion";
+import { track } from "@/lib/analytics";
+import { runCommand, type ConsoleLine } from "@/lib/console";
+import { links } from "@/lib/site";
 import { Reveal } from "./Reveal";
+import { SectionHeader } from "./SectionHeader";
 import { StreamingAnswer } from "./StreamingAnswer";
+import { Icon } from "./Icon";
 
 const MCP_CONFIG = `{
   "mcpServers": {
     "ask-edgeorgie": {
-      "url": "https://ask-edgeorgie-mcp.vercel.app/mcp"
+      "url": "${links.askMcpEndpoint}"
     }
   }
 }`;
 
-type Citation = {
-  rank: number;
-  source: string;
-  startLine: number;
-  endLine: number;
-  score: number;
-  excerpt: string;
-};
+type Citation = { rank: number; source: string; startLine: number; endLine: number; score: number; excerpt: string };
 
 type AskResult = {
   question: string;
   answer: string;
-  answerMode: "llm" | "deterministic";
+  answerMode: "llm" | "deterministic" | "synthesis-failed";
   model?: string;
   citations: Citation[];
 };
 
-type Turn = { q: string; a: AskResult; streamed: boolean };
+type Turn =
+  | { id: number; kind: "ask"; q: string; a: AskResult; streamed: boolean }
+  | { id: number; kind: "cmd"; q: string; lines: ConsoleLine[] };
 
 const SUGGESTIONS = [
   "What has this person built with AI agents?",
@@ -39,15 +38,18 @@ const SUGGESTIONS = [
   "What's the real triage-desk accuracy number?",
 ];
 
-// color-code citation chips by source file, like a syntax-highlighted
-// "file reference" pill in an IDE / AI coding tool
+const COMMAND_CHIPS = ["/projects", "/skills", "/contact", "/help"];
+
+const subscribeNoop = () => () => {};
+
+// Colour-code citation chips by corpus file (the four real files in
+// ask-edgeorgie-mcp/data).
 function sourceAccent(source: string) {
-  if (source.includes("resume")) return "text-sky-300 border-sky-400/30 bg-sky-400/5";
-  if (source.includes("case-study")) return "text-violet-300 border-violet-400/30 bg-violet-400/5";
-  if (source.includes("progress-log") || source.includes("BUILD-LOG"))
-    return "text-amber-300 border-amber-400/30 bg-amber-400/5";
-  if (source.includes("RELIABILITY")) return "text-accent border-accent/30 bg-accent/5";
-  return "text-fg-dim border-[var(--line)]";
+  if (source.includes("resume")) return "text-info border-info/40 bg-info/5";
+  if (source.includes("RECRUITER-FAQ")) return "text-violet-300 border-violet-400/40 bg-violet-400/5";
+  if (source.includes("BUILD-LOG")) return "text-warn border-warn/40 bg-warn/5";
+  if (source.includes("RELIABILITY")) return "text-accent border-accent/40 bg-accent/5";
+  return "text-fg-dim border-line";
 }
 
 export function AskMe() {
@@ -56,27 +58,41 @@ export function AskMe() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<Turn[]>([]);
+  const nextId = useRef(1);
+  // false on the server and during hydration, true once the client runs.
+  const hydrated = useSyncExternalStore(subscribeNoop, () => true, () => false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const inputId = useId();
 
-  // Reflects the REAL mode of the most recent answer, not a hardcoded
-  // assumption. Before any question is asked, we don't know yet (the
-  // deployment's LLM key could be set or unset) — say so honestly instead
-  // of guessing either way.
-  const lastAnswerMode = history.length > 0 ? history[history.length - 1].a.answerMode : null;
+  const lastAnswerMode = [...history].reverse().find((t): t is Extract<Turn, { kind: "ask" }> => t.kind === "ask")?.a
+    .answerMode;
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [history, loading]);
 
-  const ask = async (q: string) => {
-    const trimmed = q.trim();
-    if (trimmed.length < 3 || loading) return;
+
+  const submit = async (raw: string) => {
+    const trimmed = raw.trim();
+    if (trimmed.length === 0 || loading) return;
+
+    const local = runCommand(trimmed);
+    if (local) {
+      setError(null);
+      if (local.kind === "clear") {
+        setHistory([]);
+        return;
+      }
+      setHistory((h) => [...h, { id: nextId.current++, kind: "cmd", q: trimmed, lines: local.lines }]);
+      track("console_command", { command: local.command });
+      return;
+    }
+
+    if (trimmed.length < 3) return;
     setLoading(true);
     setError(null);
-    // Real product event: a visitor asked the embedded agent something.
-    // This is the single most meaningful interaction on the site, so it's
-    // the one custom event tracked here (no vanity click-tracking).
-    posthog.capture("ask_me_question_submitted", {
+    track("ask_me_question_submitted", {
       question_length: trimmed.length,
       question_preview: trimmed.slice(0, 80),
       is_suggestion: SUGGESTIONS.includes(trimmed),
@@ -89,16 +105,11 @@ export function AskMe() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong.");
-      setHistory((h) => [...h, { q: trimmed, a: data, streamed: false }]);
-      posthog.capture("ask_me_answer_received", {
-        answer_mode: data.answerMode,
-        citation_count: data.citations?.length ?? 0,
-      });
+      setHistory((h) => [...h, { id: nextId.current++, kind: "ask", q: trimmed, a: data, streamed: false }]);
+      track("ask_me_answer_received", { answer_mode: data.answerMode, citation_count: data.citations?.length ?? 0 });
     } catch (err) {
       setError((err as Error).message);
-      posthog.capture("ask_me_answer_failed", {
-        error: (err as Error).message,
-      });
+      track("ask_me_answer_failed", { error: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -106,7 +117,7 @@ export function AskMe() {
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    ask(question);
+    void submit(question);
     setQuestion("");
   };
 
@@ -116,229 +127,232 @@ export function AskMe() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      // clipboard unavailable — snippet is still selectable text
+      // clipboard unavailable: the snippet is still selectable text
     }
   };
 
   return (
-    <section
-      id="ask-me"
-      className="relative py-28 md:py-36 border-t border-[var(--line)]"
-    >
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 right-0 w-[520px] h-[520px] rounded-full bg-accent/5 blur-[140px]" />
+    <section id="ask-me" className="relative py-24 md:py-32 border-t border-line scroll-mt-16">
+      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <div className="absolute -top-40 right-0 w-[40rem] h-[40rem] glow-accent opacity-70" />
       </div>
 
       <div className="relative max-w-6xl mx-auto px-6 md:px-10">
         <Reveal>
-          <p className="mono text-xs text-accent uppercase tracking-widest mb-3">
-            01 · Ask about my work, live
-          </p>
-          <h2 className="text-4xl md:text-6xl font-semibold tracking-tight max-w-3xl">
-            Ask it something. Right here.
-          </h2>
-          <p className="mt-5 text-fg-dim max-w-xl text-lg">
-            This box calls the same live <code className="mono text-sm text-fg">ask_about_edgeorgie</code>{" "}
-            engine any MCP client would — real TF-IDF retrieval over my résumé,
-            case studies, and reliability reports, cited by file and line.
-          </p>
-          <p className="mt-3 mono text-xs text-fg-dim/70 max-w-xl">
-            {lastAnswerMode === "llm" ? (
+          <SectionHeader
+            id="ask-me"
+            title={
               <>
-                Answers are generated prose from a real model (Claude Haiku),
-                grounded strictly in cited excerpts — not freeform. See the{" "}
-                <span className="text-fg-dim">answerMode</span> badge under
-                each reply.
+                Don&rsquo;t take my word for it. <em>Ask.</em>
               </>
-            ) : lastAnswerMode === "deterministic" ? (
+            }
+            lede={
               <>
-                No LLM key is configured on this deployment right now, so
-                answers come back as a direct, cited excerpt dump — not
-                generated prose. Retrieval and citations are real either way;
-                see the <span className="text-fg-dim">answerMode</span> badge
-                under each reply.
+                This console calls the same live <code className="font-mono text-[0.9em] text-fg">ask_about_edgeorgie</code>{" "}
+                engine any MCP client would: retrieval over my résumé, reliability report, build log and recruiter FAQ, cited
+                by file and line. Slash commands run locally and never leave the page.
               </>
-            ) : (
-              <>
-                Ask a question to see the live{" "}
-                <span className="text-fg-dim">answerMode</span> — generated
-                prose if an LLM key is active on this deployment, or a direct
-                cited excerpt dump if not. Retrieval and citations are real
-                either way.
-              </>
-            )}
+            }
+          />
+          <p className="mt-4 font-mono text-[12px] text-fg-faint max-w-xl" aria-live="polite">
+            {lastAnswerMode === "llm"
+              ? "Answers are generated prose from a real model, grounded strictly in the cited excerpts. See the answerMode badge under each reply."
+              : lastAnswerMode === "deterministic"
+                ? "No LLM key is configured on the upstream deployment right now, so answers are direct cited excerpts. Retrieval and citations are real either way."
+                : "Ask a question to see the live answerMode: generated prose if a model key is active upstream, or a direct cited excerpt otherwise."}
           </p>
         </Reveal>
 
         <Reveal delay={0.1}>
-          <div className="mt-10 gradient-border cmdk-glow">
-            <div className="glass-panel rounded-[1rem] overflow-hidden bg-bg-soft/60">
-              {/* fake window chrome, command-palette style */}
-              <div className="flex items-center gap-2 px-5 py-3 border-b border-white/[0.06]">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
-                <span className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
-                <span className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
-                <span className="mono text-[11px] text-fg-dim/60 ml-3">
-                  ask-edgeorgie-mcp · live · streamable-http
+          <div className="mt-10 panel overflow-hidden" style={{ boxShadow: "var(--shadow-glow)" }}>
+            {/* window chrome */}
+            <div className="flex items-center gap-2 px-5 py-3 border-b border-line">
+              <span className="w-2.5 h-2.5 rounded-full bg-err/80" />
+              <span className="w-2.5 h-2.5 rounded-full bg-warn/80" />
+              <span className="w-2.5 h-2.5 rounded-full bg-ok/80" />
+              <span className="font-mono text-[11px] text-fg-faint ml-3 truncate">ask-edgeorgie-mcp · streamable-http · /help for commands</span>
+              <span className="ml-auto flex items-center gap-1.5 shrink-0">
+                <span className="relative flex h-1.5 w-1.5 text-accent live-dot">
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent" />
                 </span>
-                <span className="ml-auto flex items-center gap-1.5">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-accent opacity-60 animate-ping" />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent" />
-                  </span>
-                  <span className="mono text-[10px] text-fg-dim/50">connected</span>
-                </span>
-              </div>
+                <span className="font-mono text-[10px] text-fg-faint">live</span>
+              </span>
+            </div>
 
-              {/* transcript */}
-              <div ref={scrollRef} className="max-h-[480px] overflow-y-auto p-6 flex flex-col gap-6">
-                {history.length === 0 && !loading && (
-                  <p className="mono text-sm text-fg-dim/70">
-                    Ask a real question below — e.g. &ldquo;What has this person
-                    built with AI agents?&rdquo;
-                  </p>
-                )}
-                <AnimatePresence initial={false}>
-                  {history.map((turn, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="flex flex-col gap-3"
-                    >
+            {/* transcript */}
+            <div
+              ref={scrollRef}
+              role="log"
+              aria-live="polite"
+              aria-relevant="additions"
+              aria-label="Console transcript"
+              className="max-h-[480px] overflow-y-auto p-5 sm:p-6 flex flex-col gap-6"
+            >
+              {history.length === 0 && !loading && (
+                <p className="font-mono text-sm text-fg-dim">
+                  Ask a real question, e.g. &ldquo;What has this person built with AI agents?&rdquo; Or type{" "}
+                  <button type="button" onClick={() => void submit("/help")} className="text-accent underline-link">
+                    /help
+                  </button>
+                  .
+                </p>
+              )}
+              <AnimatePresence initial={false}>
+                {history.map((turn) => (
+                  <m.div
+                    key={turn.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex flex-col gap-3"
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="font-mono text-xs text-accent shrink-0 mt-1">you &gt;</span>
+                      <p className="text-fg text-sm md:text-base break-words">{turn.q}</p>
+                    </div>
+                    {turn.kind === "cmd" ? (
                       <div className="flex items-start gap-2">
-                        <span className="mono text-xs text-accent shrink-0 mt-1">you &gt;</span>
-                        <p className="text-fg text-sm md:text-base">{turn.q}</p>
+                        <span className="font-mono text-xs text-fg-faint shrink-0 mt-1">sys &gt;</span>
+                        <ul className="flex-1 font-mono text-[12.5px] leading-relaxed flex flex-col gap-0.5">
+                          {turn.lines.map((l, i) => (
+                            <li key={i} className={`whitespace-pre-wrap ${l.muted ? "text-fg-faint" : "text-fg-dim"}`}>
+                              {l.href ? (
+                                <a
+                                  href={l.href}
+                                  {...(l.href.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}
+                                  className="underline-link hover:text-fg"
+                                >
+                                  {l.text}
+                                </a>
+                              ) : (
+                                l.text
+                              )}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
+                    ) : (
                       <div className="flex items-start gap-2">
-                        <span className="mono text-xs text-fg-dim shrink-0 mt-1">mcp &gt;</span>
-                        <div className="flex-1">
+                        <span className="font-mono text-xs text-fg-faint shrink-0 mt-1">mcp &gt;</span>
+                        <div className="flex-1 min-w-0">
                           <StreamingAnswer
-                            // Keying on the answer text means new text always
-                            // mounts a fresh reveal at position 0.
                             key={turn.a.answer}
                             text={turn.a.answer}
                             onDone={() => {
                               if (!turn.streamed) {
-                                setHistory((h) =>
-                                  h.map((t, idx) => (idx === i ? { ...t, streamed: true } : t))
-                                );
+                                setHistory((h) => h.map((t) => (t.id === turn.id && t.kind === "ask" ? { ...t, streamed: true } : t)));
                               }
                             }}
                           />
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className="mono text-[11px] text-fg-dim/60 border border-[var(--line)] rounded-full px-2 py-0.5">
-                              {turn.a.answerMode}
-                            </span>
-                            {turn.a.model && (
-                              <span className="mono text-[11px] text-fg-dim/60">{turn.a.model}</span>
-                            )}
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
+                            <span className="chip">{turn.a.answerMode}</span>
+                            {turn.a.model && <span className="font-mono text-[11px] text-fg-faint">{turn.a.model}</span>}
                           </div>
                           {turn.a.citations?.length > 0 && turn.streamed && (
-                            <motion.div
+                            <m.ul
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               transition={{ duration: 0.4 }}
                               className="mt-3 flex flex-wrap gap-1.5"
+                              aria-label="Citations"
                             >
                               {turn.a.citations.map((c) => (
-                                <span
+                                <li
                                   key={c.rank}
                                   title={c.excerpt.slice(0, 160)}
-                                  className={`mono text-[11px] rounded-md px-2.5 py-1 border cursor-help ${sourceAccent(c.source)}`}
+                                  className={`font-mono text-[11px] rounded-md px-2.5 py-1 border cursor-help ${sourceAccent(c.source)}`}
                                 >
                                   [{c.rank}] {c.source}
-                                  <span className="opacity-60">:{c.startLine}-{c.endLine}</span>
-                                </span>
+                                  <span className="opacity-60">
+                                    :{c.startLine}-{c.endLine}
+                                  </span>
+                                </li>
                               ))}
-                            </motion.div>
+                            </m.ul>
                           )}
                         </div>
                       </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-                {loading && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex items-center gap-2"
-                  >
-                    <span className="mono text-xs text-fg-dim">mcp &gt;</span>
-                    <span className="mono text-xs shimmer-text">
-                      querying live corpus…
-                    </span>
-                  </motion.div>
-                )}
-                {error && <p className="mono text-xs text-red-400">{error}</p>}
-              </div>
-
-              {/* suggestions */}
-              <div className="px-6 pb-4 flex flex-wrap gap-2">
-                {SUGGESTIONS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => ask(s)}
-                    disabled={loading}
-                    className="mono text-[11px] text-fg-dim border border-[var(--line)] rounded-full px-3 py-1.5 hover:border-accent hover:text-accent hover:bg-accent/5 transition-all disabled:opacity-40"
-                  >
-                    {s}
-                  </button>
+                    )}
+                  </m.div>
                 ))}
-              </div>
-
-              {/* input */}
-              <form
-                onSubmit={onSubmit}
-                className="border-t border-white/[0.06] flex items-center gap-3 p-4 bg-black/10"
-              >
-                <span className="mono text-sm text-accent pl-2">❯</span>
-                <input
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  placeholder="Ask about experience, projects, or real numbers…"
-                  className="flex-1 bg-transparent mono text-sm px-1 py-2 outline-none placeholder:text-fg-dim/50"
-                />
-                <button
-                  type="submit"
-                  disabled={loading || question.trim().length < 3}
-                  className="mono text-sm bg-accent text-black px-5 py-2.5 rounded-full hover:scale-[1.03] transition-transform disabled:opacity-40 disabled:hover:scale-100 whitespace-nowrap"
-                >
-                  {loading ? "…" : "Ask →"}
-                </button>
-              </form>
+              </AnimatePresence>
+              {loading && (
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-fg-faint">mcp &gt;</span>
+                  <span className="font-mono text-xs shimmer-text">querying live corpus…</span>
+                </div>
+              )}
+              {error && (
+                <p role="alert" className="font-mono text-xs text-err">
+                  {error}
+                </p>
+              )}
             </div>
+
+            {/* suggestions */}
+            <div className="px-5 sm:px-6 pb-4 flex flex-wrap gap-2">
+              {SUGGESTIONS.map((s) => (
+                <button key={s} type="button" onClick={() => void submit(s)} disabled={loading} className="chip hover:border-accent hover:text-accent transition-colors disabled:opacity-40">
+                  {s}
+                </button>
+              ))}
+              {COMMAND_CHIPS.map((c) => (
+                <button key={c} type="button" onClick={() => void submit(c)} disabled={loading} className="chip chip-accent hover:bg-accent/10 transition-colors disabled:opacity-40">
+                  {c}
+                </button>
+              ))}
+            </div>
+
+            {/* input */}
+            <form
+              onSubmit={onSubmit}
+              action="#ask-me"
+              method="get"
+              data-hydrated={hydrated ? "true" : "false"}
+              className="border-t border-line flex items-center gap-3 p-3 sm:p-4 bg-bg/40"
+            >
+              <label htmlFor={inputId} className="font-mono text-sm text-accent pl-2" aria-hidden="true">
+                ❯
+              </label>
+              <input
+                id={inputId}
+                ref={inputRef}
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="Ask about experience, projects, or real numbers… or type /help"
+                aria-label="Ask a question or type a command"
+                autoComplete="off"
+                spellCheck={false}
+                maxLength={500}
+                className="flex-1 min-w-0 bg-transparent font-mono text-sm px-1 py-2 placeholder:text-fg-faint rounded-md"
+              />
+              <button type="submit" disabled={loading || question.trim().length === 0} className="btn btn-primary !py-2.5 !px-4">
+                {loading ? "…" : "Ask"}
+                <Icon name="arrowRight" className="w-4 h-4" />
+              </button>
+            </form>
           </div>
         </Reveal>
 
-        {/* secondary: connect directly via MCP */}
         <Reveal delay={0.15}>
-          <div className="mt-8 border border-[var(--line)] rounded-xl p-5 md:p-6">
-            <p className="mono text-xs text-fg-dim uppercase tracking-widest mb-3">
-              Prefer to connect your own agent?
-            </p>
-            <div className="grid md:grid-cols-[1fr_auto] gap-4 items-start">
-              <pre className="mono text-[11px] md:text-xs bg-bg border border-[var(--line)] rounded-lg p-4 overflow-x-auto leading-relaxed">
-                {MCP_CONFIG}
-              </pre>
-              <button
-                onClick={copyConfig}
-                className="mono text-xs border border-[var(--line)] px-4 py-2.5 rounded-full hover:border-accent hover:text-accent transition-colors whitespace-nowrap"
-              >
-                {copied ? "Copied ✓" : "Copy config"}
+          <div className="mt-6 panel p-5 md:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-fg-faint">Prefer to connect your own agent?</p>
+              <button type="button" onClick={copyConfig} className="btn !py-2 !px-3.5 text-[12px]">
+                <Icon name={copied ? "check" : "copy"} className="w-3.5 h-3.5" />
+                {copied ? "Copied" : "Copy config"}
               </button>
             </div>
-            <p className="mt-3 mono text-[11px] text-fg-dim">
-              Drop this into Claude Desktop or Cursor for get_experience ·
-              get_projects · ask_about_edgeorgie. Same engine as the box
-              above.{" "}
-              <a
-                href="https://ask-edgeorgie-mcp.vercel.app"
-                target="_blank"
-                rel="noreferrer"
-                className="underline-link text-fg"
-              >
+            <pre
+              tabIndex={0}
+              aria-label="MCP server configuration for Claude Desktop or Cursor"
+              className="font-mono text-[11px] md:text-xs bg-bg border border-line rounded-lg p-4 overflow-x-auto leading-relaxed text-fg-dim"
+            >
+              {MCP_CONFIG}
+            </pre>
+            <p className="mt-3 font-mono text-[11px] text-fg-faint">
+              Drop this into Claude Desktop or Cursor for get_experience · get_projects · get_story · ask_about_edgeorgie.{" "}
+              <a href={links.askMcp} target="_blank" rel="noreferrer" className="underline-link text-fg-dim">
                 Open the standalone endpoint ↗
               </a>
             </p>

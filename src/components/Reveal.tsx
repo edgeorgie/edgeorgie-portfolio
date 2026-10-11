@@ -1,7 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { ReactNode, useSyncExternalStore } from "react";
+import { type CSSProperties, type ReactNode, useEffect, useRef, useSyncExternalStore } from "react";
 
 function subscribe(callback: () => void) {
   const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -14,27 +13,56 @@ function getSnapshot() {
 }
 
 // Server and first client paint must agree (no window), so default to
-// "reduced motion" there — i.e. render the plain, always-visible div until
-// the client can confirm otherwise. This is the side that is SAFE to be
-// wrong about: worst case a non-reduced-motion user briefly sees content
-// without the entrance animation; it can never leave anyone stuck invisible.
+// "reduced motion" there. The safe side to be wrong about: content is
+// visible, never stuck hidden.
 function getServerSnapshot() {
   return true;
 }
 
 /**
- * Live `prefers-reduced-motion: reduce` subscription.
- *
- * Shared so every animation on the site reads the preference the same way,
- * with the same safety property: the server/first-paint snapshot is
- * "reduced motion ON", so the guaranteed-safe branch is the static,
- * fully-visible one. See the long note in `Reveal` below for why
- * framer-motion's own `useReducedMotion()` is not used here.
+ * Live `prefers-reduced-motion: reduce` subscription, shared by every
+ * JS-driven animation on the site.
  */
 export function usePrefersReducedMotion() {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
+/* One IntersectionObserver for every Reveal on the page. */
+let observer: IntersectionObserver | null = null;
+const handlers = new WeakMap<Element, (entry: IntersectionObserverEntry) => void>();
+
+function observe(el: Element, handler: (entry: IntersectionObserverEntry) => void) {
+  if (!observer) {
+    observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) handlers.get(entry.target)?.(entry);
+      },
+      { rootMargin: "0px 0px -80px 0px", threshold: 0 }
+    );
+  }
+  handlers.set(el, handler);
+  observer.observe(el);
+  return () => {
+    observer?.unobserve(el);
+    handlers.delete(el);
+  };
+}
+
+/**
+ * Scroll-triggered entrance, CSS-driven.
+ *
+ * The markup is a plain, fully visible <div> on the server and at hydration.
+ * After mount, elements that are still below the viewport get
+ * `data-reveal="hidden"` and animate to `"visible"` when they scroll in
+ * (see globals.css). Elements already on screen at hydration are left
+ * alone, so nothing ever flashes or waits for JavaScript, and reduced-motion
+ * users never see the animation at all.
+ *
+ * The previous implementation returned a framer-motion element once the
+ * client confirmed the preference, which is a different React element type
+ * from the server-rendered div: React remounted the whole subtree after
+ * hydration on every page load.
+ */
 export function Reveal({
   children,
   delay = 0,
@@ -46,46 +74,32 @@ export function Reveal({
   className?: string;
   y?: number;
 }) {
-  // Respect the OS-level `prefers-reduced-motion` preference (WCAG 2.3.3):
-  // users with vestibular/motion sensitivity get content immediately,
-  // with no animated opacity/translate transition.
-  // See qa-reports/portfolio.md Issue #3.
-  //
-  // IMPORTANT: do not rely on framer-motion's own `useReducedMotion()` here.
-  // That hook lazily reads `matchMedia` once via a module-level cache and
-  // returns it through a one-shot `useState` initializer with no re-render
-  // on change. On SSR (no `window`) it resolves to a non-reduced default,
-  // so the server (and the very first client paint, which must match the
-  // server markup for hydration) always renders the animated
-  // `motion.div` with `initial={{ opacity: 0 }}` baked into its inline
-  // style. Verified live via CDP `Emulation.setEmulatedMedia` that once
-  // that opacity:0 motion.div has mounted, switching the *next* render to
-  // a reduced-motion branch does not reliably clear the stuck opacity:0
-  // state — reduced-motion users end up with content that never becomes
-  // visible, which is worse than not special-casing reduced motion at all.
-  //
-  // Fix: use `useSyncExternalStore` to subscribe directly to the live
-  // `matchMedia` result (React's documented pattern for external browser
-  // state, re-renders automatically on change, no manual setState-in-effect
-  // needed). The server/first-paint snapshot defaults to "reduced motion ON"
-  // (the plain, fully-visible `<div>` branch) so the guaranteed-safe state
-  // is never an invisible one — the animated `motion.div` is strictly
-  // opt-in once the client confirms the real OS preference.
+  const ref = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = usePrefersReducedMotion();
 
-  if (prefersReducedMotion) {
-    return <div className={className}>{children}</div>;
-  }
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || prefersReducedMotion) return;
+    let armed = false;
+    const stop = observe(el, (entry) => {
+      if (entry.isIntersecting) {
+        if (armed) el.dataset.reveal = "visible";
+        stop();
+      } else if (!armed) {
+        // First report and not on screen: hide it until it scrolls in.
+        armed = true;
+        el.dataset.reveal = "hidden";
+      }
+    });
+    return () => {
+      stop();
+      delete el.dataset.reveal;
+    };
+  }, [prefersReducedMotion]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
-      className={className}
-    >
+    <div ref={ref} className={className} style={{ "--reveal-y": `${y}px`, "--reveal-delay": `${delay}s` } as CSSProperties}>
       {children}
-    </motion.div>
+    </div>
   );
 }

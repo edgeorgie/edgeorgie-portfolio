@@ -1,150 +1,477 @@
 @import "tailwindcss";
 
-:root {
-  --bg: #0a0a0b;
-  --bg-soft: #111113;
-  --fg: #ededee;
-  --fg-dim: #8a8a92;
-  --accent: #baff29;
-  --accent-dim: #8fcc1f;
-  --line: #222225;
-}
-
+/* ------------------------------------------------------------------ */
+/* Design tokens. Registered in @theme so Tailwind generates the       */
+/* utilities (text-fg-dim, bg-bg-soft, border-line, font-serif …).     */
+/* The previous version declared these only on :root, so none of the  */
+/* "dim"/"soft" utilities ever compiled — see docs/AUDIT.md C6.        */
+/* ------------------------------------------------------------------ */
 @theme inline {
-  --color-bg: var(--bg);
-  --color-fg: var(--fg);
-  --color-accent: var(--accent);
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-mono);
+  --color-bg: #09090b;
+  --color-bg-soft: #111113;
+  --color-bg-raised: #17171a;
+  --color-line: #232328;
+  --color-line-strong: #32323a;
+  --color-fg: #f4f4f5;
+  --color-fg-dim: #a3a3ad; /* 7.9:1 on bg */
+  --color-fg-faint: #8b8b97; /* 5.9:1 on bg, 5.6:1 on bg-soft */
+  --color-accent: #c8ff3d;
+  --color-accent-deep: #9bd81b;
+  --color-ok: #c8ff3d;
+  --color-warn: #fbbf24;
+  --color-err: #fb7185;
+  --color-info: #7dd3fc;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: var(--font-serif), ui-serif, Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-jbmono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+
+  --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 18%, transparent),
+    0 12px 48px -16px color-mix(in srgb, var(--color-accent) 35%, transparent);
 }
 
-* {
+/* ------------------------------------------------------------------ */
+/* Base                                                                 */
+/* ------------------------------------------------------------------ */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 html {
   scroll-behavior: smooth;
-  background: var(--bg);
+  /* fixed header height + breathing room so #anchors don't land under it */
+  scroll-padding-top: 5.5rem;
+  background: var(--color-bg);
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--bg);
-  color: var(--fg);
-  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
 }
 
 ::selection {
-  background: var(--accent);
-  color: #0a0a0b;
+  background: var(--color-accent);
+  color: var(--color-bg);
 }
 
 ::-webkit-scrollbar {
   width: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg);
+  background: var(--color-bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a2a2e;
+  background: var(--color-line-strong);
   border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-dim);
+  background: var(--color-accent-deep);
 }
 
-.mono {
-  font-family: var(--font-jbmono), ui-monospace, SFMono-Regular, Menlo, monospace;
+/* Visible, consistent keyboard focus everywhere (WCAG 2.4.7). Mouse
+   clicks don't show the ring; keyboard focus always does, including on
+   the lime buttons where the UA default ring was nearly invisible. */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  border-radius: 6px;
 }
 
-.text-accent {
-  color: var(--accent);
+a {
+  text-underline-offset: 0.2em;
 }
 
-.bg-grain::before {
+/* Skip link: invisible until focused, then pinned top-left. */
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  transform: translateY(-200%);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 999px;
+  transition: transform 0.2s var(--ease-out-quart);
+}
+.skip-link:focus-visible {
+  transform: translateY(0);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Typography helpers                                                   */
+/* ------------------------------------------------------------------ */
+.display {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+.display em,
+.display .em {
+  font-style: italic;
+  color: var(--color-accent);
+}
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+.lede {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--color-fg-dim);
+  text-wrap: pretty;
+  max-width: 38rem;
+}
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ */
+/* Surfaces                                                             */
+/* ------------------------------------------------------------------ */
+.grain::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 1;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  mix-blend-mode: overlay;
-}
-
-.glow {
-  box-shadow: 0 0 80px -20px var(--accent);
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* no mix-blend-mode: the previous overlay blend forced the whole page
+     to re-composite on every scroll frame on mobile GPUs */
 }
 
 .grid-lines {
   background-image:
-    linear-gradient(to right, var(--line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--line) 1px, transparent 1px);
-  background-size: 48px 48px;
+    linear-gradient(to right, var(--color-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 40%, #000 20%, transparent 100%);
+}
+
+/* radial glow painted as a gradient instead of filter: blur(120px) */
+.glow-accent {
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--color-accent) 16%, transparent),
+    transparent 72%
+  );
+}
+
+.panel {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012));
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+}
+.panel-raised {
+  background: var(--color-bg-soft);
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  padding: 0.42rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  color: var(--color-fg-dim);
+  white-space: nowrap;
+}
+.chip-wrap {
+  white-space: normal;
+  line-height: 1.3;
+  text-align: left;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+.chip-accent {
+  border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0.85rem 1.3rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-fg);
+  transition:
+    transform 0.2s var(--ease-out-quart),
+    border-color 0.2s,
+    background-color 0.2s,
+    color 0.2s;
+  white-space: nowrap;
+}
+.btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.btn:active {
+  transform: scale(0.98);
+}
+.btn-primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg);
+  font-weight: 500;
+}
+.btn-primary:hover {
+  background: #d6ff6a;
+  border-color: #d6ff6a;
+  color: var(--color-bg);
+}
+.btn[aria-disabled="true"],
+.btn:disabled {
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 .underline-link {
-  background-image: linear-gradient(var(--accent), var(--accent));
+  background-image: linear-gradient(var(--color-accent), var(--color-accent));
   background-position: 0 100%;
   background-repeat: no-repeat;
-  background-size: 0% 2px;
-  transition: background-size 0.3s ease;
+  background-size: 0% 1.5px;
+  transition: background-size 0.3s var(--ease-out-quart);
 }
-.underline-link:hover {
-  background-size: 100% 2px;
-}
-
-/* --- polish utilities: glass panels, gradient borders, glow pulses --- */
-.glass-panel {
-  background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  border: 1px solid rgba(255,255,255,0.08);
+.underline-link:hover,
+.underline-link:focus-visible {
+  background-size: 100% 1.5px;
 }
 
-.gradient-border {
-  position: relative;
-  border-radius: 1rem;
-  background: linear-gradient(135deg, rgba(186,255,41,0.35), rgba(186,255,41,0) 40%, rgba(186,255,41,0.12) 100%);
-  padding: 1px;
+/* native <details> used for progressive disclosure on project cards */
+details.disclosure > summary {
+  list-style: none;
+  cursor: pointer;
 }
-.gradient-border > * {
-  border-radius: calc(1rem - 1px);
+details.disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+details.disclosure > summary .disclosure-icon {
+  transition: transform 0.25s var(--ease-out-quart);
+}
+details.disclosure[open] > summary .disclosure-icon {
+  transform: rotate(45deg);
 }
 
+/* ------------------------------------------------------------------ */
+/* Motion. CSS-driven entrances: the markup is visible by default, the  */
+/* animation only runs once the stylesheet is applied, so no-JS users   */
+/* and the LCP element never wait for hydration (docs/AUDIT.md C2).    */
+/* ------------------------------------------------------------------ */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* transform-only variant for the LCP headline: it must be painted (visible)
+   on the first frame so LCP is not delayed by a fade-in */
+@keyframes lift {
+  from {
+    transform: translateY(14px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 @keyframes caret-blink {
-  0%, 45% { opacity: 1; }
-  50%, 95% { opacity: 0; }
-  100% { opacity: 1; }
+  0%,
+  45% {
+    opacity: 1;
+  }
+  50%,
+  95% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes ping {
+  75%,
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+@keyframes flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.anim-rise {
+  animation: rise 0.8s var(--ease-out-expo) both;
+  animation-delay: var(--d, 0ms);
+}
+.anim-fade {
+  animation: fade 0.8s ease both;
+  animation-delay: var(--d, 0ms);
+}
+.anim-lift {
+  animation: lift 0.8s var(--ease-out-expo) both;
+  animation-delay: var(--d, 0ms);
 }
 .caret {
   animation: caret-blink 1s steps(1) infinite;
 }
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+.live-dot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.6;
+  animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 .shimmer-text {
-  background: linear-gradient(90deg, var(--fg-dim) 25%, var(--fg) 50%, var(--fg-dim) 75%);
+  background: linear-gradient(90deg, var(--color-fg-dim) 25%, var(--color-fg) 50%, var(--color-fg-dim) 75%);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   animation: shimmer 1.6s linear infinite;
 }
-
-.cmdk-glow {
-  box-shadow: 0 0 0 1px rgba(186,255,41,0.15), 0 8px 40px -12px rgba(186,255,41,0.25);
+.flow-line {
+  stroke-dasharray: 4 8;
+  animation: flow 1.2s linear infinite;
 }
 
-/* Respect OS-level reduced-motion preference (WCAG 2.3.3) as a global
-   safety net: Reveal.tsx and Hero.tsx's scroll-bounce already check
-   useReducedMotion() in JS and skip their animations entirely, but this
-   rule also neutralizes any CSS-driven transition/animation/scroll
-   smoothing for users who have the preference set, in case any other
-   component ever adds motion without checking the JS hook.
-   See qa-reports/portfolio.md Issue #3. */
+/* Reveal (src/components/Reveal.tsx): hidden only once JS has confirmed the
+   element is below the viewport; transitions in when it scrolls into view. */
+[data-reveal="hidden"] {
+  opacity: 0;
+  transform: translateY(var(--reveal-y, 24px));
+}
+[data-reveal="visible"] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.6s var(--ease-out-expo) var(--reveal-delay, 0s),
+    transform 0.6s var(--ease-out-expo) var(--reveal-delay, 0s);
+}
+
+/* Pure-CSS typewriter: each line reveals N characters over --dur after
+   --delay, with a caret that is only visible during its own window.
+   Monospace, so 1ch per character is exact. */
+.typewriter {
+  white-space: pre;
+  overflow: hidden;
+  width: 0;
+  animation: typing var(--dur) steps(var(--chars)) forwards;
+  animation-delay: var(--delay);
+  position: relative;
+}
+.typewriter::after {
+  content: "";
+  position: absolute;
+  top: 0.35em;
+  right: 0;
+  width: 7px;
+  height: 1em;
+  background: var(--color-accent);
+  opacity: 0.8;
+  visibility: hidden;
+  animation:
+    caret-window var(--dur) steps(1) forwards,
+    caret-blink 1s steps(1) infinite;
+  animation-delay: var(--delay), 0s;
+}
+@keyframes typing {
+  to {
+    width: calc(var(--chars) * 1ch + 8px);
+  }
+}
+@keyframes caret-window {
+  0%,
+  99.9% {
+    visibility: visible;
+  }
+  100% {
+    visibility: hidden;
+  }
+}
+
+/* Below-the-fold sections skip style/layout/paint until they approach the
+   viewport. Anchors, find-in-page and IntersectionObserver still work; the
+   remembered intrinsic size keeps the scrollbar stable. */
+main > section:not(:first-child) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 1200px;
+}
+
+/* Scroll-driven parallax for the hero grid: progressive enhancement,
+   ignored by browsers without animation-timeline. */
+@supports (animation-timeline: scroll()) {
+  .parallax-slow {
+    animation: parallax-slow linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 100vh;
+  }
+  @keyframes parallax-slow {
+    to {
+      transform: translateY(-80px);
+    }
+  }
+}
+
+/* Global reduced-motion safety net (WCAG 2.3.3). Every JS-driven loop
+   on the site also checks usePrefersReducedMotion(); this covers CSS. */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -154,7 +481,25 @@ body {
   *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+  .anim-rise,
+  .anim-fade,
+  .anim-lift {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .typewriter {
+    animation: none;
+    width: auto;
+  }
+  .typewriter::after {
+    display: none;
+  }
+  .parallax-slow {
+    animation: none;
   }
 }
