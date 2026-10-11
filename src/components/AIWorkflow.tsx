@@ -8,12 +8,23 @@ import { Icon, type IconName } from "./Icon";
 import { aiWorkflowPrinciples, type PrincipleIcon } from "@/data/content";
 
 /* ------------------------------------------------------------------ */
-/* The pipeline. Three lanes, no project names: this is the process    */
+/* The pipeline. Three lanes and no project nodes: this is the process  */
 /* every piece of work goes through, not a list of what was built.     */
-/* Each node's caption is the operating rule behind it.                */
+/* Each node's caption is the operating rule behind it. Where one of my */
+/* own tools was built for a step, it is attached to that node as an    */
+/* annotation (`tools`), never as a step of its own.                    */
 /* ------------------------------------------------------------------ */
 
 type Tone = "default" | "accent" | "dim";
+
+/** One of my own projects, attached to the pipeline step it was built for. */
+type Tool = {
+  name: string;
+  /** What it does at this step, in one line; taken from the repo's own description. */
+  what: string;
+  href: string;
+  via: "case study" | "live" | "repo";
+};
 
 type Node = {
   id: string;
@@ -21,6 +32,7 @@ type Node = {
   title: string;
   caption: string;
   tone?: Tone;
+  tools?: Tool[];
 };
 
 type Lane = {
@@ -55,7 +67,21 @@ const LANES: Lane[] = [
       left: { label: "no", node: { id: "quiet-log", icon: "file", title: "quiet log", caption: "Routine run, nothing to say, no ping.", tone: "dim" } },
       right: {
         label: "yes",
-        node: { id: "wake", icon: "bolt", title: "wake a build run", caption: "The full pipeline on the right runs, with the change as its brief.", tone: "accent" },
+        node: {
+          id: "wake",
+          icon: "bolt",
+          title: "wake a build run",
+          caption: "The full pipeline on the right runs, with the change as its brief.",
+          tone: "accent",
+          tools: [
+            {
+              name: "triage-desk",
+              what: "The same wake pattern on a webhook: a new GitHub issue wakes the bot, nothing else does.",
+              href: "#project-triage-desk",
+              via: "case study",
+            },
+          ],
+        },
       },
     },
     tail: [
@@ -87,6 +113,14 @@ const LANES: Lane[] = [
         title: "route by stakes",
         caption: "Cheap, fast models for mechanical, easily verified work. The strongest model plus an explicit rubric for high-stakes work.",
         tone: "accent",
+        tools: [
+          {
+            name: "budget-keeper",
+            what: "A hard per-run USD budget enforced at the token level, automatic model-tier routing and a kill-switch with partial-result handoff.",
+            href: "https://github.com/edgeorgie/budget-keeper",
+            via: "repo",
+          },
+        ],
       },
       {
         id: "skills",
@@ -107,12 +141,28 @@ const LANES: Lane[] = [
         title: "agents × N",
         caption: "Isolated contexts, concurrent. If something could be running, it is: idle time is a failure mode.",
         tone: "accent",
+        tools: [
+          {
+            name: "repoask-mcp",
+            what: "Line-cited answers about any public repo over MCP, so an agent reads the code instead of guessing at it.",
+            href: "#project-repoask-mcp",
+            via: "case study",
+          },
+        ],
       },
       {
         id: "audit-log",
         icon: "db",
         title: "audit-trail log",
         caption: "One shared log. Every result carries a pointer to its evidence: URL, test run, log line.",
+        tools: [
+          {
+            name: "agentlens",
+            what: "A waterfall of every tool call an agent made: latency, tokens, cost, nesting, errors.",
+            href: "https://agentlens-nine.vercel.app",
+            via: "live",
+          },
+        ],
       },
     ],
   },
@@ -135,6 +185,20 @@ const LANES: Lane[] = [
         title: "verify the artifact",
         caption: "The live URL, the test run, the real log line. An agent saying it worked is not evidence.",
         tone: "accent",
+        tools: [
+          {
+            name: "eval-lab",
+            what: "Fails CI when a prompt regresses, as a CLI and a GitHub Action.",
+            href: "#project-eval-lab",
+            via: "case study",
+          },
+          {
+            name: "crispy-profiling",
+            what: "Measures React re-renders before and after a fix instead of taking the fix on faith.",
+            href: "#project-crispy-profiling",
+            via: "case study",
+          },
+        ],
       },
     ],
     branch: {
@@ -149,6 +213,16 @@ const LANES: Lane[] = [
 ];
 
 const TOTAL_NODES = LANES.reduce((n, l) => n + l.nodes.length + (l.branch ? 2 : 0) + (l.tail?.length ?? 0), 0);
+
+const WORDS = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
+const countWord = (n: number) => WORDS[n] ?? String(n);
+
+/** Every tool attached above, with the lane and step it serves, in pipeline order. */
+const IN_THE_LOOP = LANES.flatMap((lane) =>
+  [...lane.nodes, ...(lane.branch ? [lane.branch.left.node, lane.branch.right.node] : []), ...(lane.tail ?? [])].flatMap((node) =>
+    (node.tools ?? []).map((tool) => ({ ...tool, lane: lane.label, step: node.title }))
+  )
+);
 
 /* ------------------------------------------------------------------ */
 
@@ -181,6 +255,13 @@ function FlowNode({ node, compact = false, onVisit }: { node: Node; compact?: bo
     >
       <Icon name={node.icon} className={compact ? "w-4 h-4" : "w-5 h-5"} />
       <span className={`font-mono ${compact ? "text-[10px]" : "text-[11px]"} leading-tight`}>{node.title}</span>
+      {node.tools && (
+        <span className="font-mono text-[9.5px] leading-tight text-accent/80">
+          <span aria-hidden="true">↳ </span>
+          <span className="sr-only">my tool here: </span>
+          {node.tools.map((t) => t.name).join(" · ")}
+        </span>
+      )}
       <AnimatePresence initial={false}>
         {open && (
           <m.span
@@ -192,6 +273,11 @@ function FlowNode({ node, compact = false, onVisit }: { node: Node; compact?: bo
             className="font-mono text-[10.5px] text-fg-dim leading-snug overflow-hidden"
           >
             {node.caption}
+            {node.tools?.map((t) => (
+              <span key={t.name} className="block mt-1.5 text-fg-faint">
+                <span className="text-accent/80">{t.name}</span>: {t.what}
+              </span>
+            ))}
           </m.span>
         )}
       </AnimatePresence>
@@ -263,7 +349,10 @@ function WorkflowDiagram() {
         skills, passed through a pre-execution guard, run by several isolated agents concurrently, and every result lands in
         one audit-trail log with its evidence. Verify, before anything is called done: a cold-context critic reviews the
         work, the artifact itself is verified against the live URL, test run or log line; a fail loops back to the agents,
-        a pass ships through secret scanning and CI. Each node is a button that reveals the rule behind it.
+        a pass ships through secret scanning and CI. Each node is a button that reveals the rule behind it. Six of my own
+        projects are attached to the step they were built for: triage-desk at the wake step, budget-keeper at routing by
+        stakes, repoask-mcp at the agents, agentlens at the audit trail, eval-lab and crispy-profiling at artifact
+        verification; they are listed with links under the diagram.
       </p>
       <div className="flex items-center justify-between mb-5">
         <p className="font-mono text-[11px] text-fg-dim">one piece of work, end to end · tap any node</p>
@@ -275,6 +364,36 @@ function WorkflowDiagram() {
         {LANES.map((lane, i) => (
           <LaneView key={lane.id} lane={lane} index={i} onVisit={markVisited} />
         ))}
+      </div>
+
+      <div className="mt-6 pt-5 border-t border-dashed border-line" data-testid="in-the-loop">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+          <p className="kicker text-[11px]">In the loop</p>
+          <p className="text-[13px] text-fg-dim leading-relaxed max-w-2xl">
+            {countWord(IN_THE_LOOP.length)} of the projects on this page were built for a step of this pipeline, and that is
+            where they get used. Each one is marked on its node above.
+          </p>
+        </div>
+        <ul className="mt-4 grid gap-x-8 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+          {IN_THE_LOOP.map((t) => (
+            <li key={t.name} className="flex flex-col gap-0.5 border-l border-line pl-3">
+              <span className="flex flex-wrap items-baseline gap-x-2">
+                <span className="font-mono text-[12px] text-accent">{t.name}</span>
+                <span className="font-mono text-[10px] text-fg-faint">
+                  {t.lane.toLowerCase()} · {t.step}
+                </span>
+              </span>
+              <span className="text-[12.5px] text-fg-dim leading-snug">{t.what}</span>
+              <a
+                href={t.href}
+                {...(t.href.startsWith("#") ? {} : { target: "_blank", rel: "noreferrer" })}
+                className="self-start font-mono text-[10.5px] text-fg-faint hover:text-accent transition-colors underline-link"
+              >
+                {t.via} →
+              </a>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

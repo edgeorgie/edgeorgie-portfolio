@@ -71,6 +71,8 @@ test.describe("portfolio", () => {
     // second; what matters is that the markup itself is never invisible.
     await h1.evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)));
     expect(await h1.evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+    // The portrait is a real <img> in the server HTML, not a client-side swap.
+    await expect(page.getByRole("img", { name: /Edwin Jorge/ })).toBeVisible();
     await expect(page.locator("#work h2")).toBeVisible();
     await expect(page.locator('a[href^="mailto:"]').first()).toBeVisible();
     const hidden = await page.locator("[style*='opacity']").evaluateAll((els) => els.filter((el) => (el as HTMLElement).style.opacity === "0").length);
@@ -122,6 +124,21 @@ test.describe("portfolio", () => {
     await expect(details).toHaveAttribute("open", "");
     await expect(first.getByText("Architecture & decisions")).toBeVisible();
     expect(await first.locator("a[target=_blank]").count()).toBeGreaterThanOrEqual(1);
+  });
+
+  test("AI workflow marks the author's own tools on the steps they serve", async ({ page }) => {
+    await page.goto("/");
+    const diagram = page.locator("#ai-workflow [role='group']");
+    await diagram.scrollIntoViewIfNeeded();
+    // Tools are annotations on process nodes, never nodes of their own.
+    await expect(diagram.locator("button", { hasText: "budget-keeper" })).toHaveCount(1);
+    await expect(diagram.locator("button", { hasText: "eval-lab" })).toHaveCount(1);
+    const loop = diagram.locator("[data-testid='in-the-loop']");
+    await expect(loop.locator("li")).toHaveCount(6);
+    for (const href of await loop.locator("a").evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? ""))) {
+      if (href.startsWith("#")) await expect(page.locator(href), href).toHaveCount(1);
+      else expect(href).toMatch(/^https:\/\//);
+    }
   });
 
   test("console runs slash commands offline", async ({ page }) => {

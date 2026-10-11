@@ -1,4 +1,6 @@
+import Image from "next/image";
 import { Icon } from "./Icon";
+import portrait from "@/assets/portrait.webp";
 import { HeroTerminal } from "./HeroTerminal";
 import { links, person } from "@/lib/site";
 
@@ -34,12 +36,27 @@ export function Hero() {
 
         <div className="mt-8 md:mt-10 grid gap-10 lg:grid-cols-[1.15fr_1fr] lg:items-start [&>*]:min-w-0">
           <div className="anim-rise" style={{ "--d": "140ms" } as React.CSSProperties}>
-            <p className="lede text-lg md:text-xl max-w-xl">
-              Senior engineer at Mercado Libre: five years shipping production{" "}
-              <span className="text-fg">web, native mobile and smart‑TV</span> surfaces to millions of users across LATAM.
-              Outside work I build <span className="text-fg">AI‑agent systems</span> in public: two live MCP servers, a
-              GitHub triage bot, an eval CLI and a React profiler on npm. Everything here runs today.
-            </p>
+            {/* The human half of "people and agents": the bio reads next to a
+                face, the terminal on the right is the agent half. The float
+                is contained by flow-root so the CTAs always start below it. */}
+            <div className="flow-root max-w-xl">
+              <Image
+                src={portrait}
+                alt="Edwin Jorge, smiling, in glasses and a black t-shirt"
+                width={136}
+                height={170}
+                sizes="(min-width: 640px) 136px, 96px"
+                priority
+                placeholder="blur"
+                className="float-left mr-4 mb-2 sm:mr-6 w-24 sm:w-[136px] h-auto rounded-2xl ring-1 ring-line-strong shadow-[0_18px_40px_-18px_rgba(0,0,0,0.8)]"
+              />
+              <p className="lede text-lg md:text-xl">
+                Senior engineer at Mercado Libre: five years shipping production{" "}
+                <span className="text-fg">web, native mobile and smart‑TV</span> surfaces to millions of users across LATAM.
+                Outside work I build <span className="text-fg">AI‑agent systems</span> in public: two live MCP servers, a
+                GitHub triage bot, an eval CLI and a React profiler on npm. Everything here runs today.
+              </p>
+            </div>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <a href="#work" className="btn btn-primary">
