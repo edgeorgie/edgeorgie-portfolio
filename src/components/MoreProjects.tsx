@@ -9,10 +9,15 @@ import { moreProjects, type Audience } from "@/data/content";
 const AUDIENCE_LABEL: Record<Audience, string> = { humans: "for humans", agents: "for agents" };
 const MOBILE_VISIBLE = 3;
 
+/** Spelled-out card counts, so the heading never disagrees with the list. */
+const COUNT_WORD = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+
 /**
  * The rest of the public, non-fork repos as compact cards: a real screenshot
- * where there is a live UI, an honest text tile where there is none, the
- * repo's own description, and who it is built for. On phones the list shows
+ * where there is a live UI, an honest text tile where there is none, a
+ * description adapted from the repo's own, and who it is built for. The two
+ * repos that are not products in their own right — this site and the GitHub
+ * profile README — are deliberately left out. On phones the list shows
  * three cards and a toggle; from `sm` up every card is always visible, so
  * the toggle is purely a small-screen convenience.
  */
@@ -27,12 +32,12 @@ export function MoreProjects() {
           <div>
             <p className="kicker">More projects</p>
             <h3 className="display text-3xl sm:text-4xl mt-4">
-              Nine more, for <em>humans and agents</em>.
+              {COUNT_WORD[moreProjects.length] ?? moreProjects.length} more, for <em>humans and agents</em>.
             </h3>
           </div>
           <p className="text-sm text-fg-dim max-w-sm md:text-right">
-            Every public, non-fork repo that isn&rsquo;t a case study above, described in its own words. Previews are real
-            screenshots of the live apps.
+            The public, non-fork repos that aren&rsquo;t a case study above, each described close to the repo&rsquo;s own
+            words. Previews are real screenshots of the live apps.
           </p>
         </div>
       </Reveal>

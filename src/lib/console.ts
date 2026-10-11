@@ -12,7 +12,7 @@ export type CommandResult = { kind: "output"; command: string; lines: ConsoleLin
 
 export const COMMANDS: { name: string; description: string }[] = [
   { name: "help", description: "list commands" },
-  { name: "projects", description: "all fifteen public projects, with links" },
+  { name: "projects", description: `all ${projects.length + moreProjects.length} public projects, with links` },
   { name: "skills", description: "capability groups" },
   { name: "experience", description: "work history" },
   { name: "contact", description: "email, GitHub, LinkedIn" },
