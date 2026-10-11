@@ -23,7 +23,8 @@ function renderedText() {
 function Harness({ text }: { text: string }) {
   return (
     <div data-testid="stream-root">
-      {/* key={text} is the production call site's reset mechanism (AskMe.tsx) */}
+      {/* These tests cover StreamingAnswer in isolation; the key mirrors the
+          production call site, which AskMe.test.tsx covers for real. */}
       <StreamingAnswer key={text} text={text} />
     </div>
   );
@@ -85,30 +86,6 @@ describe("StreamingAnswer", () => {
 
     await advance(20);
     expect(renderedText()).toBe(SHORT);
-  });
-
-  it("without the key, a text change would continue from the stale position (documents why the key is required)", async () => {
-    vi.useFakeTimers();
-    // Deliberately NO key: same component instance is reused across the
-    // text swap. This is the failure mode the production key prevents.
-    const { rerender } = render(
-      <div data-testid="stream-root">
-        <StreamingAnswer text={LONG} />
-      </div>,
-    );
-    await advance(40);
-    expect(renderedText()).toBe(LONG);
-
-    rerender(
-      <div data-testid="stream-root">
-        <StreamingAnswer text={SHORT} />
-      </div>,
-    );
-
-    // The stale reveal position (past SHORT's length) makes the new answer
-    // appear instantly and fully, with no stream at all.
-    expect(renderedText()).toBe(SHORT);
-    expect(screen.queryByTestId("stream-caret")).toBeNull();
   });
 
   it("fires onDone exactly once the full text is revealed", async () => {

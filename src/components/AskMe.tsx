@@ -215,14 +215,8 @@ export function AskMe() {
                         <span className="mono text-xs text-fg-dim shrink-0 mt-1">mcp &gt;</span>
                         <div className="flex-1">
                           <StreamingAnswer
-                            // React's documented way to reset state: a new
-                            // answer string mounts a fresh StreamingAnswer at
-                            // reveal position 0 instead of continuing from the
-                            // previous answer's position. The transcript is
-                            // append-only today, so `turn.a.answer` does not
-                            // change under a mounted instance — this key makes
-                            // that a guarantee of the call site rather than an
-                            // assumption inside the component.
+                            // Keying on the answer text means new text always
+                            // mounts a fresh reveal at position 0.
                             key={turn.a.answer}
                             text={turn.a.answer}
                             onDone={() => {

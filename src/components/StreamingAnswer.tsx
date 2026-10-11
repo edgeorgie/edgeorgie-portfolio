@@ -7,19 +7,13 @@ import { usePrefersReducedMotion } from "./Reveal";
 /**
  * Reveals `text` word-by-word to look like a live model stream.
  *
- * The reveal position lives in `count` and is intentionally NOT reset when
- * `text` changes. Resetting it in-component would require either a
- * setState-in-effect (which `react-hooks/set-state-in-effect` correctly
- * rejects, since the reset lands only after a render has already sliced the
- * new text with the stale count) or an extra piece of state duplicating the
- * whole answer string to compare against. Callers get a full reset the way
- * React documents it instead: give the element a `key` derived from the text
- * (see the call site in AskMe.tsx), so new text mounts a fresh component at
- * count=0.
- *
- * Today's only call site appends to an immutable transcript, so a mounted
- * instance never sees a different `text` anyway. The keying is what makes
- * that structural rather than incidental.
+ * The reveal position in `count` is deliberately not reset when `text`
+ * changes: doing that in-component needs either a setState-in-effect (which
+ * `react-hooks/set-state-in-effect` rejects, and which lands only after a
+ * render has already sliced the new text with the stale count) or a second
+ * copy of the whole answer string in state. Callers reset it the way React
+ * documents instead — a `key` derived from the text, see AskMe.tsx — so new
+ * text mounts a fresh instance at count=0.
  */
 export function StreamingAnswer({
   text,
@@ -58,7 +52,10 @@ export function StreamingAnswer({
   const done = prefersReducedMotion || count >= words.length;
 
   return (
-    <div className="prose-ask text-fg-dim text-sm md:text-base leading-relaxed">
+    <div
+      data-testid="stream-answer"
+      className="prose-ask text-fg-dim text-sm md:text-base leading-relaxed"
+    >
       <ReactMarkdown
         components={{
           // Keep headings visually modest inside the chat bubble (don't let
