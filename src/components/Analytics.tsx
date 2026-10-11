@@ -2,14 +2,12 @@
 
 import { Suspense, useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import posthog from "posthog-js";
+import { analyticsEnabled, track } from "@/lib/analytics";
 
 /**
  * Captures a `$pageview` on first load and on every client-side route
- * change. Needed because this file disables posthog-js's automatic
- * history-API pageview capture (`capture_pageview: false` in
- * instrumentation-client.ts) in favor of an explicit, App-Router-aware
- * call — the automatic one double-fires on Next.js's client navigation.
+ * change. Manual rather than posthog-js's history patch, which double-fires
+ * on App Router navigations. Renders nothing; no-op without a key.
  */
 function PageviewTracker() {
   const pathname = usePathname();
@@ -23,13 +21,14 @@ function PageviewTracker() {
     if (qs) url += `?${qs}`;
     if (url === lastUrl.current) return;
     lastUrl.current = url;
-    posthog.capture("$pageview", { $current_url: url });
+    track("$pageview", { $current_url: url });
   }, [pathname, searchParams]);
 
   return null;
 }
 
-export function PostHogPageview() {
+export function Analytics() {
+  if (!analyticsEnabled) return null;
   return (
     <Suspense fallback={null}>
       <PageviewTracker />

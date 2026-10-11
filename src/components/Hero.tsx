@@ -1,168 +1,89 @@
-"use client";
+import { Icon } from "./Icon";
+import { HeroTerminal } from "./HeroTerminal";
+import { links, person } from "@/lib/site";
 
-import { motion, useReducedMotion } from "framer-motion";
-import { useEffect, useState } from "react";
-
-const ROLES = [
-  "full-stack web platforms",
-  "cross-platform UIs",
-  "reliable backend APIs",
-  "AI agent systems",
-];
-
-const TERMINAL_LINES = [
-  "$ curl -X POST ask-edgeorgie-mcp.vercel.app/api/ask",
-  '> { "question": "what has this person shipped?" }',
-  "< citing resume.txt:1-24, progress-log.txt:289-318 …",
-];
-
-function TerminalBoot() {
-  const [lineIdx, setLineIdx] = useState(0);
-  const [charIdx, setCharIdx] = useState(0);
-
-  useEffect(() => {
-    if (lineIdx >= TERMINAL_LINES.length) return;
-    const current = TERMINAL_LINES[lineIdx];
-    if (charIdx < current.length) {
-      const t = setTimeout(() => setCharIdx((c) => c + 1), 18);
-      return () => clearTimeout(t);
-    }
-    const t = setTimeout(() => {
-      setLineIdx((l) => l + 1);
-      setCharIdx(0);
-    }, 420);
-    return () => clearTimeout(t);
-  }, [lineIdx, charIdx]);
-
+/**
+ * Server component. Everything in the first screen is in the HTML and
+ * visible before any JavaScript runs; entrance motion is CSS keyframes
+ * (see .anim-rise), so LCP is the h1 at first paint and nothing shifts.
+ */
+export function Hero() {
   return (
-    <div className="mono text-[11px] md:text-xs text-fg-dim/80 bg-bg-soft border border-[var(--line)] rounded-lg px-4 py-3 w-fit max-w-full overflow-hidden">
-      {TERMINAL_LINES.slice(0, lineIdx).map((l, i) => (
-        <div key={i} className="whitespace-pre">{l}</div>
-      ))}
-      {lineIdx < TERMINAL_LINES.length && (
-        <div className="whitespace-pre">
-          {TERMINAL_LINES[lineIdx].slice(0, charIdx)}
-          <span className="inline-block w-[7px] h-[12px] bg-accent/70 ml-0.5 animate-pulse align-middle" />
+    <section id="top" className="relative min-h-[100svh] flex flex-col justify-center overflow-hidden pt-24 pb-16 md:pb-24">
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        <div className="absolute inset-0 grid-lines parallax-slow" />
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[48rem] h-[48rem] glow-accent" />
+      </div>
+
+      <div className="relative max-w-6xl w-full mx-auto px-6 md:px-10">
+        <p className="kicker mb-7 anim-rise flex flex-wrap items-center gap-x-3 gap-y-1" style={{ "--d": "0ms" } as React.CSSProperties}>
+          <span className="relative inline-flex h-2 w-2 text-accent live-dot">
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-accent" />
+          </span>
+          <span>
+            {person.name} · {person.title} · {person.company}
+          </span>
+        </p>
+
+        <h1
+          className="display text-[clamp(3rem,11.5vw,5.5rem)] md:text-[clamp(4.5rem,8.6vw,7.25rem)] max-w-5xl anim-lift"
+          style={{ "--d": "0ms" } as React.CSSProperties}
+        >
+          I build software people <em>and agents</em> rely on.
+        </h1>
+
+        <div className="mt-8 md:mt-10 grid gap-10 lg:grid-cols-[1.15fr_1fr] lg:items-start [&>*]:min-w-0">
+          <div className="anim-rise" style={{ "--d": "140ms" } as React.CSSProperties}>
+            <p className="lede text-lg md:text-xl max-w-xl">
+              Five years shipping production <span className="text-fg">web, native mobile and smart‑TV</span> surfaces at
+              LATAM scale. On the side, a public set of <span className="text-fg">AI‑agent systems</span>: two live MCP
+              servers, a webhook‑triggered triage bot, an eval CLI and a React profiler on npm. All runnable today.
+            </p>
+
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <a href="#work" className="btn btn-primary">
+                See the work
+                <Icon name="arrowDown" className="w-4 h-4" />
+              </a>
+              <a href={links.github} target="_blank" rel="noreferrer" className="btn">
+                <Icon name="github" className="w-4 h-4" />
+                GitHub
+              </a>
+              <a href={links.linkedin} target="_blank" rel="noreferrer" className="btn">
+                <Icon name="linkedin" className="w-4 h-4" />
+                LinkedIn
+              </a>
+              <a href="#ask-me" className="font-mono text-sm text-fg-dim hover:text-accent transition-colors underline-link ml-1">
+                or ask the console →
+              </a>
+            </div>
+
+            <dl className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-5 max-w-xl border-t border-line pt-6">
+              <Fact value="4.3M+" label="users on the surfaces I ship" />
+              <Fact value="6" label="public projects, runnable today" />
+              <Fact value="5+" label="years in production" />
+              <Fact value={person.timezoneLabel} label="Barranquilla · remote" />
+            </dl>
+          </div>
+
+          <div className="anim-rise lg:justify-self-end w-full min-w-0" style={{ "--d": "220ms" } as React.CSSProperties}>
+            <HeroTerminal />
+            <p className="mt-3 font-mono text-[11px] text-fg-faint max-w-xl">
+              That endpoint is a real MCP server about my work. The console further down calls the same engine.
+            </p>
+          </div>
         </div>
-      )}
-    </div>
+      </div>
+    </section>
   );
 }
 
-export function Hero() {
-  const [roleIdx, setRoleIdx] = useState(0);
-  // Respect OS-level reduced-motion preference for the infinite scroll-hint
-  // bounce (see qa-reports/portfolio.md Issue #3).
-  const shouldReduceMotion = useReducedMotion();
-
-  useEffect(() => {
-    const t = setInterval(() => setRoleIdx((i) => (i + 1) % ROLES.length), 2200);
-    return () => clearInterval(t);
-  }, []);
-
+function Fact({ value, label }: { value: string; label: string }) {
   return (
-    <section
-      id="top"
-      className="relative min-h-screen flex flex-col justify-center overflow-hidden grid-lines"
-    >
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-accent/10 blur-[120px]" />
-      </div>
-
-      <div className="relative max-w-6xl w-full mx-auto px-6 md:px-10 pt-24">
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mono text-xs md:text-sm text-accent tracking-widest uppercase mb-6"
-        >
-          Edwin Jorge — Senior Software Engineer
-        </motion.p>
-
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.1 }}
-          className="text-[13vw] md:text-[6.2rem] leading-[0.95] font-semibold tracking-tight"
-        >
-          I build software
-          <br />
-          people <span className="text-accent">and agents</span> rely on.
-        </motion.h1>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.3 }}
-          className="mt-8 max-w-2xl"
-        >
-          <p className="text-lg md:text-xl text-fg-dim leading-relaxed">
-            Senior Software Engineer at Mercado Libre, shipping{" "}
-            <span className="text-fg">
-              {ROLES[roleIdx]}
-            </span>{" "}
-            in production at LATAM e-commerce scale (4.3M+ users). Outside
-            work, I keep building — including a set of real, publicly
-            running AI-agent projects: webhook-triggered bots and a live
-            MCP server you can question right now.
-          </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.4 }}
-          className="mt-6"
-        >
-          <TerminalBoot />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.55 }}
-          className="mt-8 flex flex-wrap items-center gap-4"
-        >
-          <a
-            href="#ask-me"
-            className="mono text-sm bg-accent text-black px-6 py-3 rounded-full hover:scale-[1.03] transition-transform inline-block"
-          >
-            Ask an agent about me ↓
-          </a>
-          <a
-            href="#work"
-            className="mono text-sm text-fg-dim hover:text-accent transition-colors"
-          >
-            See the work →
-          </a>
-        </motion.div>
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1, duration: 0.8 }}
-        // Hidden below md: on narrow/mobile viewports the hero content
-        // stack is tall enough that this absolutely-positioned hint
-        // lands directly on top of the primary CTA button (confirmed via
-        // getBoundingClientRect() overlap — qa-reports/portfolio.md
-        // Issue #2). Showing it only at md+ (where there's vertical
-        // room below the CTA) removes the overlap entirely rather than
-        // relying on a fragile spacing/z-index tweak.
-        className="hidden md:flex absolute bottom-10 left-1/2 -translate-x-1/2 mono text-xs text-fg-dim/60 flex-col items-center gap-2"
-      >
-        <span>scroll</span>
-        <motion.span
-          animate={shouldReduceMotion ? { y: 0 } : { y: [0, 8, 0] }}
-          transition={
-            shouldReduceMotion
-              ? { duration: 0 }
-              : { repeat: Infinity, duration: 1.6, ease: "easeInOut" }
-          }
-        >
-          ↓
-        </motion.span>
-      </motion.div>
-    </section>
+    <div>
+      <dt className="sr-only">{label}</dt>
+      <dd className="font-mono text-2xl md:text-[1.7rem] text-fg tnum leading-none">{value}</dd>
+      <dd className="mt-2 text-[12px] leading-snug text-fg-faint">{label}</dd>
+    </div>
   );
 }

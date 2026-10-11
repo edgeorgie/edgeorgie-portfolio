@@ -28,38 +28,39 @@ jobs:
 
       # Build must run before `typecheck`: Next generates route types
       # (e.g. `LayoutProps`) into `.next/types`, which tsconfig.json
-      # includes. Running `tsc --noEmit` on a clean checkout fails with
-      # "Cannot find name 'LayoutProps'" until those types exist.
-      #
-      # No secrets are provided to this step on purpose — the build must
-      # not depend on any environment config that only exists locally or
-      # on Vercel.
+      # includes. No secrets are provided on purpose — the build must not
+      # depend on any environment config that only exists locally or on Vercel.
       - name: Build
         run: npm run build
 
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Test
+      - name: Unit tests
         run: npm test
 
-      # SCOPE: `--omit=dev`, and this is NOT the claim that dev dependencies
-      # cannot affect what ships. They can — `tailwindcss` and `typescript` are
-      # devDependencies whose OUTPUT is the shipped artifact, so a compromised
-      # version of either injects straight into the CSS/JS a visitor downloads.
-      # That class of build-time supply-chain attack is exactly what this flag
-      # is blind to, and it is covered by other things: `npm ci` against a
-      # committed lockfile, and Dependabot alerts on the repo.
-      #
-      # The narrower claim this flag rests on is about the advisories actually
-      # present: they resolve to the `eslint-config-next` lint subtree
-      # (@next/eslint-plugin-next -> fast-glob -> micromatch -> braces), which
-      # runs the linter and emits nothing, and the only fix npm offers is a
-      # MAJOR downgrade of `eslint-config-next` to v14 — a real regression to
-      # silence a finding in code that never executes at build or runtime.
-      #
-      # The production tree is 0 findings today, so this gate starts green and
-      # fails when something reachable regresses. Separate step from the suite so
-      # an advisory reads as an advisory, not as a test failure.
+      # SCOPE: `--omit=dev`. Dev dependencies can still affect what ships
+      # (tailwindcss/typescript OUTPUT is the artifact); that class of
+      # supply-chain risk is covered by `npm ci` against the lockfile and
+      # Dependabot. The only advisories present resolve to the
+      # `eslint-config-next` lint subtree (fast-glob -> micromatch -> braces),
+      # which runs the linter and emits nothing; the only npm fix is a major
+      # downgrade of eslint-config-next. The production tree is 0 findings.
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end tests (production build)
+        run: npm run e2e
+        env:
+          CI: "true"
+
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: test-results/
+          retention-days: 7
