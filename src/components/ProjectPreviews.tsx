@@ -126,7 +126,7 @@ function SurfacesPreview({ demo }: { demo: Of<"surfaces"> }) {
   );
 }
 
-export function ProjectPreviewView({ preview, priority = false }: { preview: ProjectPreview; priority?: boolean }) {
+export function ProjectPreviewView({ preview }: { preview: ProjectPreview }) {
   if (preview.kind === "image") {
     return (
       <div className="relative aspect-[16/10] overflow-hidden rounded-xl border border-line bg-bg-soft">
@@ -136,7 +136,6 @@ export function ProjectPreviewView({ preview, priority = false }: { preview: Pro
           width={preview.width}
           height={preview.height}
           sizes="(min-width: 1024px) 560px, (min-width: 640px) 90vw, 100vw"
-          priority={priority}
           className="h-full w-full object-cover object-top transition-transform duration-700 ease-[var(--ease-out-quart)] group-hover:scale-[1.02]"
         />
       </div>

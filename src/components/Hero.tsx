@@ -38,7 +38,12 @@ export function Hero() {
           <div className="anim-rise" style={{ "--d": "140ms" } as React.CSSProperties}>
             {/* The human half of "people and agents": the bio reads next to a
                 face, the terminal on the right is the agent half. The float
-                is contained by flow-root so the CTAs always start below it. */}
+                is contained by flow-root so the CTAs always start below it.
+                `loading="eager"` rather than the deprecated `priority`: Next still
+                emits a preload link for it, but without the high fetch priority,
+                so it never queues ahead of the display fonts that paint the
+                headline (the LCP element). Measured: priority, eager and lazy all
+                land within run-to-run noise, see docs/REPORT.md §8. */}
             <div className="flow-root max-w-xl">
               <Image
                 src={portrait}
@@ -46,7 +51,7 @@ export function Hero() {
                 width={136}
                 height={170}
                 sizes="(min-width: 640px) 136px, 96px"
-                priority
+                loading="eager"
                 placeholder="blur"
                 className="float-left mr-4 mb-2 sm:mr-6 w-24 sm:w-[136px] h-auto rounded-2xl ring-1 ring-line-strong shadow-[0_18px_40px_-18px_rgba(0,0,0,0.8)]"
               />
