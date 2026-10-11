@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 /**
@@ -86,9 +88,12 @@ describe("/ingest analytics proxy", () => {
     // string compare waves each of them through. These paths are real
     // PostHog endpoints that must not be proxied whatever the rule is
     // called. `/api/*` is the authenticated management surface and the
-    // feature-polling surface (surveys, product tours, conversations — all
-    // three explicitly disabled in src/lib/analytics.ts, since posthog-js
-    // enables them by default); `/s/` is session-replay ingestion, which
+    // feature-polling surface (surveys, product tours and conversations are
+    // all three default-ON in posthog-js and explicitly disabled in
+    // src/lib/analytics.ts; `/api/web_experiments/` is default-OFF —
+    // `disable_web_experiments:!0` in the pinned 1.438.7 bundle — so it is
+    // listed here as defence against a future config change, not because
+    // anything polls it today); `/s/` is session-replay ingestion, which
     // this app disables; `/batch/` is the server-side capture endpoint,
     // which a browser app never calls; `/engage/` and `/capture/` are the
     // person-properties and legacy-capture endpoints — unreachable today,
@@ -130,6 +135,44 @@ describe("/ingest analytics proxy", () => {
         expect(matches([{ source }], path), `${source} must cover ${path}`).toBe(true);
       }
     }
+  });
+
+  it("the key-set bundle assertion stays the last CI step", async () => {
+    // A workflow ORDERING constraint, enforced here because nothing in YAML
+    // can express it. The "Analytics IS present in the bundle with a key"
+    // step rebuilds `.next` with a key set, and two earlier steps read
+    // `.next` expecting the NO-KEY build: the absent-from-the-bundle
+    // assertion, and the Playwright e2e run (`reuseExistingServer` off in
+    // CI, so `npm run start` serves whatever `.next` holds).
+    //
+    // Reordering it earlier does not break the build — it makes the no-key
+    // assertion grep a key-set artifact. That check would then fail, which
+    // is at least loud; the worse outcome is a future refactor moving the
+    // rebuild before e2e and silently changing which bundle the browser
+    // tests exercise. Asserting the order here means the constraint is
+    // stated somewhere a reader of ci.yml can be pointed at, and it fails in
+    // CI rather than in review.
+    // Resolved from the repo root via `process.cwd()` (vitest runs from
+    // there), not from `import.meta.url` — under the jsdom environment that
+    // is not a `file:` URL and `readFile` rejects it outright.
+    const workflow = await readFile(join(process.cwd(), ".github/workflows/ci.yml"), "utf8");
+    const steps = [...workflow.matchAll(/^ {6}- name: (.+)$/gm)].map((m) => m[1].trim());
+    expect(steps.length, "no `- name:` steps found in ci.yml — this guard would pass vacuously").toBeGreaterThan(
+      5,
+    );
+
+    const keySetStep = "Analytics IS present in the bundle with a key";
+    const noKeyStep = "Analytics is absent from the bundle without a key";
+    const e2eStep = "End-to-end tests (production build)";
+    for (const name of [keySetStep, noKeyStep, e2eStep]) {
+      expect(steps, `ci.yml no longer has a step named ${JSON.stringify(name)}`).toContain(name);
+    }
+
+    expect(
+      steps.indexOf(keySetStep),
+      `${JSON.stringify(keySetStep)} rebuilds .next with a key and must run AFTER every step ` +
+        `that reads the no-key build; ci.yml order is [${steps.join(" | ")}]`,
+    ).toBeGreaterThan(Math.max(steps.indexOf(noKeyStep), steps.indexOf(e2eStep)));
   });
 });
 
