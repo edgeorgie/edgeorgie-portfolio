@@ -278,7 +278,8 @@ export const projects: Project[] = [
 
 /* ------------------------------------------------------------------ */
 /* More projects — the rest of the public, non-fork repos. Curated by  */
-/* hand; descriptions are the repos' own. Previews are real screenshots */
+/* hand; descriptions stay close to the repos' own, lightly edited for */
+/* length and tense. Previews are real screenshots                     */
 /* of the live apps; projects without a UI get an honest text tile.     */
 /* ------------------------------------------------------------------ */
 

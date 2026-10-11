@@ -3,6 +3,7 @@ import { Icon } from "./Icon";
 import portrait from "@/assets/portrait.webp";
 import { HeroTerminal } from "./HeroTerminal";
 import { links, person } from "@/lib/site";
+import { projects } from "@/data/content";
 
 /**
  * Server component. Everything in the first screen is in the HTML and
@@ -104,7 +105,7 @@ export function Hero() {
 
             <dl className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-5 max-w-xl border-t border-line pt-6">
               <Fact value="4.3M+" label="users across the surfaces I ship" />
-              <Fact value="6" label="public projects, runnable today" />
+              <Fact value={String(projects.length)} label="projects written up in depth" />
               <Fact value="5+" label="years in production" />
               <Fact value={person.timezoneLabel} label="Barranquilla · remote" />
             </dl>
