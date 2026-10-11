@@ -85,21 +85,40 @@ jobs:
       # module constant, so the import can be proven unreachable) is verified
       # in BOTH directions.
       #
+      # The marker is `__PosthogExtensions__`, not the string "posthog".
+      # Grepping for the vendor's name is unsound HERE in a way it is not in
+      # the no-key check above: src/lib/analytics.ts inlines
+      # `ui_host: "https://us.posthog.com"` into the app's own chunk, so a
+      # `grep -li posthog` finds a match on a build where posthog-js was
+      # pruned entirely and the step passes while analytics is dead — the
+      # exact failure it exists to catch. Measured: on a pruned mutant,
+      # `grep -rli posthog` → 1 file, `__PosthogExtensions__` → 0.
+      # `__PosthogExtensions__` is an SDK-internal global that appears only in
+      # posthog-js's own code and nowhere in this repo (asserted below, so the
+      # day the marker is renamed upstream this fails loudly instead of
+      # silently reverting to a vacuous check).
+      #
       # Deliberately the LAST step: it overwrites `.next` with a key-set build,
-      # so it must not run before the no-key bundle assertion or the e2e suite,
-      # both of which depend on `.next` being the no-key build. The key is a
-      # syntactically valid, non-existent project token — the build is static,
-      # nothing executes, and this step only greps emitted chunks.
+      # and both the no-key bundle assertion and the e2e suite read `.next`.
+      # The key is a syntactically valid, non-existent project token — the
+      # build is static, nothing executes, and this step only greps chunks.
       - name: Analytics IS present in the bundle with a key
         env:
           NEXT_PUBLIC_POSTHOG_KEY: phc_ci_bundle_probe_not_a_real_project
         run: |
-          npm run build
-          count=$(grep -rli posthog .next/static | wc -l)
-          echo "client chunks mentioning posthog with a key set: $count"
-          if [ "$count" -eq 0 ]; then
-            echo "NEXT_PUBLIC_POSTHOG_KEY was set but no posthog code reached" >&2
-            echo "the client bundle — analytics would be silently dead in production" >&2
+          # Guard the guard: the marker must come from the SDK, not from us.
+          if grep -rl __PosthogExtensions__ src/ 2>/dev/null; then
+            echo "__PosthogExtensions__ appears in this repo's own source, so it" >&2
+            echo "no longer distinguishes 'the SDK shipped' from 'our code shipped'" >&2
             exit 1
           fi
+          npm run build
+          count=$(grep -rl __PosthogExtensions__ .next/static | wc -l)
+          echo "client chunks containing the posthog-js SDK marker: $count"
+          if [ "$count" -eq 0 ]; then
+            echo "NEXT_PUBLIC_POSTHOG_KEY was set but posthog-js did not reach the" >&2
+            echo "client bundle — analytics would be silently dead in production" >&2
+            exit 1
+          fi
+
 
