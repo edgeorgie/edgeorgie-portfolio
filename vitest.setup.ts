@@ -18,6 +18,32 @@ if (!window.matchMedia) {
   })) as unknown as typeof window.matchMedia;
 }
 
+// jsdom implements neither IntersectionObserver nor Element.scrollTo.
+// `Reveal` (framer-motion `whileInView`) needs the former; AskMe's
+// transcript auto-scroll needs the latter. Stub both so component trees
+// containing them can be rendered at all. The IO stub reports nothing as
+// intersecting, which is fine: `Reveal` renders its children either way.
+if (typeof globalThis.IntersectionObserver === "undefined") {
+  class StubIntersectionObserver implements IntersectionObserver {
+    readonly root = null;
+    readonly rootMargin = "";
+    readonly thresholds: ReadonlyArray<number> = [];
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords(): IntersectionObserverEntry[] {
+      return [];
+    }
+  }
+  globalThis.IntersectionObserver =
+    StubIntersectionObserver as unknown as typeof IntersectionObserver;
+  window.IntersectionObserver = globalThis.IntersectionObserver;
+}
+
+if (!Element.prototype.scrollTo) {
+  Element.prototype.scrollTo = () => {};
+}
+
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
