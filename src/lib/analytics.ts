@@ -19,8 +19,7 @@ import type { PostHog } from "posthog-js";
 
 type Props = Record<string, string | number | boolean | null | undefined>;
 
-export const ANALYTICS_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-export const analyticsEnabled = Boolean(ANALYTICS_KEY);
+export const analyticsEnabled = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY);
 /** The `app` super property; the same PostHog project holds every app. */
 export const APP = "portfolio";
 /** Same-origin path proxied to PostHog by next.config.ts rewrites. */
@@ -31,12 +30,17 @@ let loading: Promise<PostHog | null> | null = null;
 const queue: { event: string; props?: Props }[] = [];
 
 export function loadAnalytics(): Promise<PostHog | null> {
-  if (!analyticsEnabled || typeof window === "undefined") return Promise.resolve(null);
+  // The gate reads process.env directly, not through a module-level constant:
+  // next.config.ts defines the key as "" when unset, and only a literal here
+  // lets the bundler prove the dynamic import unreachable and leave the SDK
+  // out of a build made without a key (ci.yml asserts that).
+  if (!process.env.NEXT_PUBLIC_POSTHOG_KEY || typeof window === "undefined") return Promise.resolve(null);
   if (client) return Promise.resolve(client);
   if (loading) return loading;
+  const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
   loading = import("posthog-js")
     .then(({ default: posthog }) => {
-      posthog.init(ANALYTICS_KEY as string, {
+      posthog.init(key, {
         api_host: ANALYTICS_HOST,
         ui_host: "https://us.posthog.com",
         defaults: "2026-08-30",
