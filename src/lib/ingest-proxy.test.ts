@@ -90,16 +90,23 @@ describe("/ingest analytics proxy", () => {
     // three explicitly disabled in src/lib/analytics.ts, since posthog-js
     // enables them by default); `/s/` is session-replay ingestion, which
     // this app disables; `/batch/` is the server-side capture endpoint,
-    // which a browser app never calls.
+    // which a browser app never calls; `/engage/` and `/capture/` are the
+    // person-properties and legacy-capture endpoints — unreachable today,
+    // but absent from this list until a cold review probed them live and
+    // found the negative set narrower than the endpoint families PostHog
+    // actually publishes.
     const forbidden = [
       "/ingest/api/projects/",
       "/ingest/api/users/@me/",
       "/ingest/api/surveys/",
       "/ingest/api/product_tours/",
       "/ingest/api/early_access_features/",
+      "/ingest/api/web_experiments/",
       "/ingest/s/",
       "/ingest/batch/",
       "/ingest/decide/",
+      "/ingest/engage/",
+      "/ingest/capture/",
     ];
     for (const path of forbidden) {
       expect(matches(rewrites, path), `${path} must not be proxied`).toBe(false);

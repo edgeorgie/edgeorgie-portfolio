@@ -73,3 +73,33 @@ jobs:
           name: playwright-report
           path: test-results/
           retention-days: 7
+
+      # The OTHER half of the no-key assertion above, and the half that
+      # actually runs in production. "The SDK is absent without a key" is, on
+      # its own, equally satisfied by analytics being permanently dead: a typo
+      # in `loadAnalytics()`'s env read, or a bundler change that prunes the
+      # dynamic import unconditionally, leaves CI fully green and ships a site
+      # that silently records nothing. This proves a key-set build really does
+      # emit the SDK, so the bundler-visibility contract in
+      # src/lib/analytics.ts (a literal `process.env` read, deliberately not a
+      # module constant, so the import can be proven unreachable) is verified
+      # in BOTH directions.
+      #
+      # Deliberately the LAST step: it overwrites `.next` with a key-set build,
+      # so it must not run before the no-key bundle assertion or the e2e suite,
+      # both of which depend on `.next` being the no-key build. The key is a
+      # syntactically valid, non-existent project token — the build is static,
+      # nothing executes, and this step only greps emitted chunks.
+      - name: Analytics IS present in the bundle with a key
+        env:
+          NEXT_PUBLIC_POSTHOG_KEY: phc_ci_bundle_probe_not_a_real_project
+        run: |
+          npm run build
+          count=$(grep -rli posthog .next/static | wc -l)
+          echo "client chunks mentioning posthog with a key set: $count"
+          if [ "$count" -eq 0 ]; then
+            echo "NEXT_PUBLIC_POSTHOG_KEY was set but no posthog code reached" >&2
+            echo "the client bundle — analytics would be silently dead in production" >&2
+            exit 1
+          fi
+
