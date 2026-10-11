@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { Analytics } from "@/components/Analytics";
+import { Analytics as ProductAnalytics } from "@/components/Analytics";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 import { MotionProvider } from "@/components/MotionProvider";
 import { SITE_URL, links, person } from "@/lib/site";
 
@@ -127,7 +129,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
         />
         <MotionProvider>{children}</MotionProvider>
-        <Analytics />
+        <ProductAnalytics />
+        {/* Vercel sets VERCEL=1 at build time. Outside Vercel (local, CI)
+            these would request /_vercel/* endpoints that don't exist. */}
+        {process.env.VERCEL && (
+          <>
+            <SpeedInsights />
+            <VercelAnalytics />
+          </>
+        )}
       </body>
     </html>
   );
