@@ -43,16 +43,23 @@ jobs:
       - name: Test
         run: npm test
 
-      # `--omit=dev` is the deliberate scope, not laziness. This repo's 5 high
-      # advisories sit entirely in the dev tree (eslint-config-next ->
-      # @next/eslint-plugin-next -> fast-glob -> micromatch -> braces), whose
-      # only fix is a MAJOR downgrade of eslint-config-next to v14 — a real
-      # regression to silence a vulnerability that never ships. What reaches a
-      # visitor is the production dependency tree, and that is what this gates:
-      # `npm audit --omit=dev --audit-level=high` is currently 0 findings, so
-      # the gate starts green and fails the day a shipped dependency regresses.
+      # SCOPE: `--omit=dev`, and this is NOT the claim that dev dependencies
+      # cannot affect what ships. They can — `tailwindcss` and `typescript` are
+      # devDependencies whose OUTPUT is the shipped artifact, so a compromised
+      # version of either injects straight into the CSS/JS a visitor downloads.
+      # That class of build-time supply-chain attack is exactly what this flag
+      # is blind to, and it is covered by other things: `npm ci` against a
+      # committed lockfile, and Dependabot alerts on the repo.
       #
-      # Runs as a separate step after the suite so a new advisory is reported as
-      # "advisory", not mixed in with a test failure.
+      # The narrower claim this flag rests on is about the advisories actually
+      # present: they resolve to the `eslint-config-next` lint subtree
+      # (@next/eslint-plugin-next -> fast-glob -> micromatch -> braces), which
+      # runs the linter and emits nothing, and the only fix npm offers is a
+      # MAJOR downgrade of `eslint-config-next` to v14 — a real regression to
+      # silence a finding in code that never executes at build or runtime.
+      #
+      # The production tree is 0 findings today, so this gate starts green and
+      # fails when something reachable regresses. Separate step from the suite so
+      # an advisory reads as an advisory, not as a test failure.
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high

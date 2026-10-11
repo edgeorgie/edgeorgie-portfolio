@@ -46,32 +46,41 @@ function answers() {
  * Reads the React `key` that AskMe passed to the `<StreamingAnswer>` element
  * rendered at `node`.
  *
- * Why this is pinned to StreamingAnswer's own fiber rather than "the nearest
- * keyed ancestor": the previous version of this helper walked *up* from the
- * testid node and returned the first non-null key it found. That made the
- * guard satisfiable by a key on the WRONG element — moving the key up to the
- * surrounding `<motion.div>` and deleting StreamingAnswer's key left this
- * suite fully green while reintroducing the exact bug it exists to catch
- * (a mounted StreamingAnswer reused for different text, so the reveal
- * continues from the previous answer's position). Verified by mutation:
- * that swap now fails here instead of passing.
+ * Pinned to StreamingAnswer's own fiber, not "the nearest keyed ancestor":
+ * an earlier version of this helper walked up and returned the first non-null
+ * key it found, and the transcript always has a keyed ancestor, so the guard
+ * was satisfiable by a key on an unrelated element.
  *
- * So: walk up only until the fiber whose `type` is the StreamingAnswer
- * component itself, and report THAT fiber's key. A key anywhere else — above
- * it, below it — is not the key React uses to decide whether to remount the
- * reveal, and must not count.
+ * Unwraps `memo`/`forwardRef` because `fiber.type` is the wrapper object, not
+ * the function, once a component is wrapped — a pure performance refactor
+ * adding `memo` would otherwise break this test with a message blaming the
+ * testid.
  */
 function reactKeyOf(node: Element): string | null {
   const fiberProp = Object.keys(node).find((k) => k.startsWith("__reactFiber$"));
   if (!fiberProp) throw new Error("no React fiber on node — React internals changed");
   type Fiber = { key: string | null; type: unknown; return: Fiber | null };
+  // The component the test imports may itself be a wrapper (`memo`/`forwardRef`),
+  // and React's fiber may hold either the wrapper or the inner function
+  // depending on the fiber tag, so accept both sides of the unwrap.
+  const S = StreamingAnswer as unknown as { type?: unknown; render?: unknown };
+  const accepted = new Set<unknown>([StreamingAnswer, S.type, S.render].filter(Boolean));
+  const isStreamingAnswer = (t: unknown) => {
+    if (accepted.has(t)) return true;
+    if (typeof t === "object" && t !== null) {
+      const w = t as { type?: unknown; render?: unknown };
+      return accepted.has(w.type) || accepted.has(w.render);
+    }
+    return false;
+  };
   let fiber = (node as unknown as Record<string, Fiber>)[fiberProp] as Fiber | null;
   while (fiber) {
-    if (fiber.type === StreamingAnswer) return fiber.key;
+    if (isStreamingAnswer(fiber.type)) return fiber.key;
     fiber = fiber.return;
   }
   throw new Error(
-    "no StreamingAnswer fiber above the stream-answer node — the testid moved off StreamingAnswer"
+    "no StreamingAnswer fiber above the stream-answer node — the testid moved off " +
+      "StreamingAnswer, or it is wrapped in something this helper does not unwrap"
   );
 }
 
@@ -119,7 +128,25 @@ describe("AskMe (production call site)", () => {
     expect(screen.queryByTestId("stream-caret")).toBeNull();
   });
 
-  it("keys each StreamingAnswer on its answer text, so a mounted instance can never be reused for different text", async () => {
+  // SCOPE, stated honestly because an earlier version of this file overstated
+  // it: this is a STRUCTURAL guard, not a user-visible-regression guard.
+  //
+  // Removing `key` from `<StreamingAnswer>` does not currently change anything
+  // a visitor sees, and no behavioral test in this repo fails when you do it —
+  // verified by mutation, which is how the overstatement was caught. The reason
+  // is that `AskMe` only ever appends to `history` (see `setHistory` in
+  // AskMe.tsx), so every turn mounts a fresh StreamingAnswer at position 0
+  // regardless of keying. The reveal-position bug the key defends against needs
+  // an existing turn's `answer` to change in place, which this call site never
+  // does. That reachable behavior is covered directly, at the component level,
+  // by StreamingAnswer.test.tsx's "restarts the reveal from the beginning when
+  // the text changes" — driven through a harness that really does swap the prop.
+  //
+  // So the key is deliberate defense against a future call site that edits a
+  // turn (a retry, an edit-and-resend, a streaming update), and this test's job
+  // is to make a silent removal of that defense visible in review. That is
+  // worth a test, but it is not worth claiming a bug it does not catch.
+  it("keys each StreamingAnswer on its answer text, so a future in-place answer update cannot reuse a mounted reveal", async () => {
     mockApi(LONG, SHORT);
     render(<AskMe />);
 
@@ -133,23 +160,37 @@ describe("AskMe (production call site)", () => {
     expect(nodes.map(reactKeyOf)).toEqual([LONG, SHORT]);
   });
 
-  // The fiber assertion above proves WHERE the key sits. This proves WHY that
-  // placement is the only correct one, without touching React internals.
+  // The per-turn list key is a separate invariant from the one above, and this
+  // one IS behavioral: two different questions can retrieve the same answer
+  // text, and if the transcript's list items were keyed on answer text instead
+  // of per turn, React would reconcile two siblings under one key.
   //
-  // Two different questions can legitimately retrieve the SAME answer text —
-  // the corpus is small and the deterministic path returns the best-matching
-  // excerpt, so "what have you built with agents?" and a rephrasing of it can
-  // produce one identical string. The answer text is therefore a valid key for
-  // StreamingAnswer (one instance per distinct text, remounted when the text
-  // changes) but NOT for the transcript's list items, which are per-turn and
-  // can collide. Moving the key up to the surrounding `<motion.div>` makes
-  // React reconcile two siblings under one key, which it reports as an error.
+  // The claim that identical answers are reachable is not assumed here — the
+  // test asserts it is possible for the component to render two identical
+  // answers at all, which is the only premise the invariant needs.
   //
-  // Mutation-verified: with the key moved to the list element, React logs
-  // "Encountered two children with the same key" and this test fails.
+  // The console.error assertion carries a positive control, because asserting
+  // "no warning was logged" passes identically when the warning text changed,
+  // when React stopped warning, and when the spy never saw anything at all. The
+  // control renders a deliberately duplicate-keyed fixture first and asserts
+  // the spy DOES capture the warning, so a React wording change fails loudly
+  // here instead of silently voiding the check.
   it("gives the transcript's list items keys that stay unique when two answers are identical", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
+      // Positive control: React still warns, and this spy + regex still see it.
+      render(
+        <div>
+          {["dup", "dup"].map((k) => (
+            <span key={k} />
+          ))}
+        </div>
+      );
+      const sawWarning = () =>
+        consoleError.mock.calls.map((c) => c.join(" ")).filter((m) => /same key/i.test(m));
+      expect(sawWarning().length).toBeGreaterThan(0);
+      consoleError.mockClear();
+
       mockApi(LONG, LONG);
       render(<AskMe />);
 
@@ -164,8 +205,9 @@ describe("AskMe (production call site)", () => {
       expect(screen.getAllByTestId("stream-answer")).toHaveLength(2);
       expect(answers()).toEqual([LONG, LONG]);
 
-      const messages = consoleError.mock.calls.map((c) => c.join(" "));
-      expect(messages.filter((m) => /same key/i.test(m))).toEqual([]);
+      // ...and the real component produced no duplicate-key warning, checked
+      // with the same spy+regex just proven to catch one.
+      expect(sawWarning()).toEqual([]);
     } finally {
       consoleError.mockRestore();
     }
