@@ -27,7 +27,7 @@ Tier 1: web apps, posthog-js through the proxy. Tier 2: servers, bots and MCP en
 
 | Project | What it is | Tier | Events (the whole allowlist) | Notes |
 | --- | --- | --- | --- | --- |
-| edgeorgie-portfolio | Next.js site | 1 | `$pageview`, `section_viewed` (section), `project_opened` (slug), `evidence_clicked` (slug, kind), `console_command_run` (command), `question_asked` (length_bucket, top_k, is_suggestion, answered, answer_mode, citations, latency_ms, reason), `contact_clicked` (channel, placement), `cta_clicked` (target), `outbound_clicked` (target, kind) | **Implemented** (inert without a key — the SDK is absent from the bundle *and* the `/ingest` proxy route is not registered; both are asserted in CI/tests): facade in `src/lib/analytics.ts`, `/ingest` proxy, declarative `data-track` attributes read by one listener in `Analytics.tsx`. Web vitals on. |
+| edgeorgie-portfolio | Next.js site | 1 | `$pageview`, `section_viewed` (section), `project_opened` (slug), `evidence_clicked` (slug, kind), `console_command_run` (command), `question_asked` (length_bucket, top_k, is_suggestion, answered, answer_mode, citations, latency_ms, reason), `contact_clicked` (channel, placement), `cta_clicked` (target), `outbound_clicked` (target, kind) | **Implemented** (inert without a key — the SDK is absent from the bundle *and* the `/ingest` proxy route is not registered; with a key the proxy exposes an allowlist of five endpoints, no catch-all; all asserted in CI/tests): facade in `src/lib/analytics.ts`, `/ingest` proxy, declarative `data-track` attributes read by one listener in `Analytics.tsx`. Web vitals on. |
 | ask-edgeorgie-mcp | Next.js web UI + MCP endpoint | 1 + 2 | `question_asked` (surface web\|mcp, mode, cited, latency_ms, length_bucket), `mcp_tool_called` (tool), `rate_limited` (surface) | Same event name on both surfaces so one chart shows humans vs agents. |
 | repoask / repoask-mcp | Next.js web + `/api/mcp` | 1 + 2 | `repo_asked` (repo, question_length_bucket, surface), `index_built` (chunk_bucket, duration_ms), `mcp_tool_called` (tool) | A public repo name is public data; the question text is not sent. |
 | issue-scout | Next.js web | 1 | `search_run` (language, label_count, policy_filter), `issue_opened` (repo), `policy_badge_viewed` (stance) | No free-text query is sent. |
@@ -55,23 +55,34 @@ const posthogEnabled = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY);
 
 const nextConfig = {
   async rewrites() {
-    // Gate the proxy on the key. The rewrite is a SERVER-side route, so it
-    // exists whether or not the client ever calls it: registered
-    // unconditionally, the deployment forwards any body posted to
-    // /ingest/* to PostHog's public ingestion API — an open relay on your
-    // own domain. A no-key client bundle does not close it.
+    // Guard 1 — gate the proxy on the key. The rewrite is a SERVER-side
+    // route, so it exists whether or not the client ever calls it:
+    // registered unconditionally, the deployment forwards any body posted
+    // to /ingest/* to PostHog's public ingestion API — an open relay on
+    // your own domain. A no-key client bundle does not close it.
     if (!posthogEnabled) return [];
+    // Guard 2 — an explicit ALLOWLIST, never a `/ingest/:path*` catch-all.
+    // Guard 1 only holds while analytics is off; the moment the key is set
+    // a catch-all reopens the identical relay permanently, because
+    // PostHog's ingestion endpoints answer an unrecognised `api_key` with
+    // `200 {"status":"Ok"}` — nothing downstream limits who may post
+    // through it. A catch-all also proxies PostHog's AUTHENTICATED
+    // `/api/*` surface through your origin. List only the endpoints your
+    // SDK configuration actually calls; adding a capability (surveys →
+    // `/api/surveys/`, session replay → `/s/`) is a deliberate edit here.
     return [
       { source: "/ingest/static/:path*", destination: "https://us-assets.i.posthog.com/static/:path*" },
       { source: "/ingest/array/:path*", destination: "https://us-assets.i.posthog.com/array/:path*" },
-      { source: "/ingest/:path*", destination: "https://us.i.posthog.com/:path*" },
+      { source: "/ingest/e/", destination: "https://us.i.posthog.com/e/" },
+      { source: "/ingest/flags/", destination: "https://us.i.posthog.com/flags/" },
+      { source: "/ingest/i/v1/:path*", destination: "https://us.i.posthog.com/i/v1/:path*" },
     ];
   },
   skipTrailingSlashRedirect: true, // PostHog endpoints end in "/", a redirect would drop events
 };
 ```
 
-Order matters: the `static` and `array` rules must precede the catch-all. With the proxy in place, CSP needs no PostHog origins; the portfolio's `posthogOrigins` branch in `next.config.ts` becomes dead and can be removed.
+With the proxy in place, CSP needs no PostHog origins; the portfolio's `posthogOrigins` branch in `next.config.ts` becomes dead and can be removed. Copy `src/lib/ingest-proxy.test.ts` alongside the config: it calls the real `rewrites()` under unset / `""` / set keys, and asserts both guards by reachability (that `/ingest/api/projects/`, `/ingest/s/`, `/ingest/batch/` do **not** match any rule) rather than by inspecting the source, which cannot answer whether a route exists.
 
 ### 2.2 Browser facade (every Tier 1 app)
 
@@ -145,12 +156,14 @@ Question text, answers, notes, pasted errors, screenshots, repository file conte
 ## 5. Verification checklist per project
 
 1. `npm run build` with no key: `posthog-js` absent from the client bundle (`grep -r posthog .next/static` empty).
-2. With a key, in production: PostHog "Live events" shows the first event within a minute, with `app` and `surface` set.
-3. Browser devtools: every analytics request goes to `/ingest/…` on the app's own origin; no CSP report.
-4. With uBlock Origin enabled: events still arrive.
-5. Property audit: export one day of events and grep for `@`, `http`, and any string longer than 64 characters in properties; expect none.
-6. Lighthouse mobile before and after: performance unchanged within run-to-run variance.
-7. README or privacy note updated where the app has one (errorlens, recall-local's promise stays intact by having nothing to update).
+2. No key, against the **deployed** site: `POST /ingest/e/` returns 404. The bundle check above says nothing about this — a rewrite is a server-side route, so the only check that covers it is calling the route.
+3. With a key: `/ingest/e/`, `/ingest/flags/` and `/ingest/static/*` work, and every unlisted PostHog path (`/ingest/api/projects/`, `/ingest/s/`, `/ingest/batch/`) returns 404. Guard 1 stops holding the moment the key is set; from then on the allowlist is the only thing closing the relay.
+4. With a key, in production: PostHog "Live events" shows the first event within a minute, with `app` and `surface` set.
+5. Browser devtools: every analytics request goes to `/ingest/…` on the app's own origin; no CSP report.
+6. With uBlock Origin enabled: events still arrive.
+7. Property audit: export one day of events and grep for `@`, `http`, and any string longer than 64 characters in properties; expect none.
+8. Lighthouse mobile before and after: performance unchanged within run-to-run variance.
+9. README or privacy note updated where the app has one (errorlens, recall-local's promise stays intact by having nothing to update).
 
 ## 6. Cost
 
