@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const isProd = process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
 // React needs eval() for its development-only debugging features; never in production.
 const isDev = process.env.NODE_ENV === "development";
+// Gates the /ingest proxy below. Analytics is opt-in by configuration; the
+// proxy must not exist as a route when it is off.
+const posthogEnabled = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY);
 
 /**
  * Content Security Policy.
@@ -73,7 +76,16 @@ const nextConfig: NextConfig = {
   async rewrites() {
     // Same-origin proxy for analytics: tracking blockers filter by domain,
     // and the CSP can stay pinned to 'self'. Order matters: static and
-    // array before the catch-all. No-op traffic-wise until a key is set.
+    // array before the catch-all.
+    //
+    // Gated on the key. An UNCONDITIONAL rewrite is not "a no-op until a key
+    // is set": the proxy is a server-side route that exists whether or not the
+    // client ever calls it, so without this guard the deployed site forwards
+    // ANY body posted to /ingest/* straight to PostHog's public ingestion API
+    // — an open relay on this domain that costs nothing to abuse and whose
+    // traffic is attributed to this origin. Nothing on the client side can
+    // close it, which is why #41's bundle work left it open.
+    if (!posthogEnabled) return [];
     return [
       { source: "/ingest/static/:path*", destination: "https://us-assets.i.posthog.com/static/:path*" },
       { source: "/ingest/array/:path*", destination: "https://us-assets.i.posthog.com/array/:path*" },

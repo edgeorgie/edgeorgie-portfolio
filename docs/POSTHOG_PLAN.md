@@ -27,7 +27,7 @@ Tier 1: web apps, posthog-js through the proxy. Tier 2: servers, bots and MCP en
 
 | Project | What it is | Tier | Events (the whole allowlist) | Notes |
 | --- | --- | --- | --- | --- |
-| edgeorgie-portfolio | Next.js site | 1 | `$pageview`, `section_viewed` (section), `project_opened` (slug), `evidence_clicked` (slug, kind), `console_command_run` (command), `question_asked` (length_bucket, top_k, is_suggestion, answered, answer_mode, citations, latency_ms, reason), `contact_clicked` (channel, placement), `cta_clicked` (target), `outbound_clicked` (target, kind) | **Implemented** (no-op until the key is set): facade in `src/lib/analytics.ts`, `/ingest` proxy, declarative `data-track` attributes read by one listener in `Analytics.tsx`. Web vitals on. |
+| edgeorgie-portfolio | Next.js site | 1 | `$pageview`, `section_viewed` (section), `project_opened` (slug), `evidence_clicked` (slug, kind), `console_command_run` (command), `question_asked` (length_bucket, top_k, is_suggestion, answered, answer_mode, citations, latency_ms, reason), `contact_clicked` (channel, placement), `cta_clicked` (target), `outbound_clicked` (target, kind) | **Implemented** (inert without a key — the SDK is absent from the bundle *and* the `/ingest` proxy route is not registered; both are asserted in CI/tests): facade in `src/lib/analytics.ts`, `/ingest` proxy, declarative `data-track` attributes read by one listener in `Analytics.tsx`. Web vitals on. |
 | ask-edgeorgie-mcp | Next.js web UI + MCP endpoint | 1 + 2 | `question_asked` (surface web\|mcp, mode, cited, latency_ms, length_bucket), `mcp_tool_called` (tool), `rate_limited` (surface) | Same event name on both surfaces so one chart shows humans vs agents. |
 | repoask / repoask-mcp | Next.js web + `/api/mcp` | 1 + 2 | `repo_asked` (repo, question_length_bucket, surface), `index_built` (chunk_bucket, duration_ms), `mcp_tool_called` (tool) | A public repo name is public data; the question text is not sent. |
 | issue-scout | Next.js web | 1 | `search_run` (language, label_count, policy_filter), `issue_opened` (repo), `policy_badge_viewed` (stance) | No free-text query is sent. |
@@ -51,8 +51,16 @@ Buckets, not raw numbers, for anything that could fingerprint a person: `length_
 
 ```ts
 // next.config.ts
+const posthogEnabled = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY);
+
 const nextConfig = {
   async rewrites() {
+    // Gate the proxy on the key. The rewrite is a SERVER-side route, so it
+    // exists whether or not the client ever calls it: registered
+    // unconditionally, the deployment forwards any body posted to
+    // /ingest/* to PostHog's public ingestion API — an open relay on your
+    // own domain. A no-key client bundle does not close it.
+    if (!posthogEnabled) return [];
     return [
       { source: "/ingest/static/:path*", destination: "https://us-assets.i.posthog.com/static/:path*" },
       { source: "/ingest/array/:path*", destination: "https://us-assets.i.posthog.com/array/:path*" },
