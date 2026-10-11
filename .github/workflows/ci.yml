@@ -42,3 +42,17 @@ jobs:
 
       - name: Test
         run: npm test
+
+      # `--omit=dev` is the deliberate scope, not laziness. This repo's 5 high
+      # advisories sit entirely in the dev tree (eslint-config-next ->
+      # @next/eslint-plugin-next -> fast-glob -> micromatch -> braces), whose
+      # only fix is a MAJOR downgrade of eslint-config-next to v14 — a real
+      # regression to silence a vulnerability that never ships. What reaches a
+      # visitor is the production dependency tree, and that is what this gates:
+      # `npm audit --omit=dev --audit-level=high` is currently 0 findings, so
+      # the gate starts green and fails the day a shipped dependency regresses.
+      #
+      # Runs as a separate step after the suite so a new advisory is reported as
+      # "advisory", not mixed in with a test failure.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
