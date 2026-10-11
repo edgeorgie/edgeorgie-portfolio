@@ -11,7 +11,8 @@ const AUDIENCE_LABEL: Record<Audience, string> = { humans: "for humans", agents:
 const MOBILE_VISIBLE = 3;
 
 /** Spelled-out card counts, so the heading never disagrees with the list. */
-const COUNT_WORD = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+/* Capitalised: this is only ever rendered as the first word of a heading. */
+const COUNT_WORD = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"];
 
 /**
  * The rest of the public, non-fork repos as compact cards: a real screenshot
