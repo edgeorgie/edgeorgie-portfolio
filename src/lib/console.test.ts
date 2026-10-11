@@ -92,4 +92,15 @@ describe("console commands", () => {
     const projectsCmd = COMMANDS.find((c) => c.name === "projects");
     expect(projectsCmd?.description).toContain(String(projects.length + moreProjects.length));
   });
+
+  it("the spelled-out counts are capitalised for heading position", () => {
+    // COUNT_WORD is rendered as the first word of an <h3>; a lowercase entry
+    // ships a heading reading "nine more, for humans and agents".
+    const src = readFileSync(resolve(__dirname, "../components/MoreProjects.tsx"), "utf8");
+    const table = src.match(/const COUNT_WORD = \[([^\]]*)\];/)?.[1];
+    expect(table, "COUNT_WORD table not found").toBeTruthy();
+    const words = [...table!.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+    expect(words.length).toBeGreaterThan(moreProjects.length);
+    for (const w of words) expect(w[0], `"${w}" must be capitalised`).toBe(w[0].toUpperCase());
+  });
 });
