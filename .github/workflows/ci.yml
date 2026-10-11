@@ -33,6 +33,15 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Analytics must be absent from the client bundle when no key is set
+      # (docs/POSTHOG_PLAN.md §5): not just unused, not shipped.
+      - name: Analytics is absent from the bundle without a key
+        run: |
+          if grep -rli posthog .next/static; then
+            echo "posthog code reached the client bundle without NEXT_PUBLIC_POSTHOG_KEY" >&2
+            exit 1
+          fi
+
       - name: Typecheck
         run: npm run typecheck
 

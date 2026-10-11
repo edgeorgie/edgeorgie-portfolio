@@ -62,6 +62,12 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
+  // An UNSET NEXT_PUBLIC_* variable stays a runtime lookup under Turbopack, so
+  // without this the build still emits the 315 KB posthog-js chunk even though
+  // nothing ever loads it. Defining the key as "" when unset turns the gate in
+  // src/lib/analytics.ts into a literal, the dynamic import into dead code and
+  // the SDK out of the build (ci.yml asserts the bundle is clean).
+  env: { NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "" },
   // PostHog endpoints end in "/" (e.g. /e/); Next's trailing-slash redirect would drop events.
   skipTrailingSlashRedirect: true,
   async rewrites() {
