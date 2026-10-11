@@ -64,31 +64,39 @@ describe("/ingest analytics proxy", () => {
       "/ingest/flags/",
       "/ingest/i/v1/:path*",
     ]);
-    // Every destination must stay on PostHog's own hosts: a typo'd or
-    // attacker-supplied destination here would make the relay worse, not
-    // better, than the ungated version.
+    // Every destination must stay on one of PostHog's two US hosts, matched
+    // exactly. A suffix pattern like /\.i\.posthog\.com$/ would accept
+    // `eu.i.posthog.com` or a typo'd subdomain, and a proxy pointing at the
+    // wrong region silently sends this site's traffic somewhere the project
+    // does not exist — a failure that looks like "analytics is broken"
+    // rather than "the proxy is misconfigured".
+    const allowedHosts = new Set(["us.i.posthog.com", "us-assets.i.posthog.com"]);
     for (const r of rewrites) {
-      expect(new URL(r.destination).hostname).toMatch(/\.i\.posthog\.com$/);
+      expect(allowedHosts.has(new URL(r.destination).hostname), r.destination).toBe(true);
     }
   });
 
   it("exposes no catch-all, so unlisted PostHog paths are unreachable", async () => {
     const rewrites = await rewritesWith("phc_test_key");
 
-    // A wildcard directly under /ingest/ is the whole bug: it matches every
-    // path PostHog will ever serve, including ones this app does not use.
-    for (const r of rewrites) {
-      expect(r.source).not.toBe("/ingest/:path*");
-    }
-
-    // Spelled out as reachability, not just as a shape: these are real
-    // PostHog paths that must NOT be proxied. `/api/*` is the authenticated
-    // management surface; `/s/` is session-replay ingestion, which this app
-    // disables (`disable_session_recording: true`); `/batch/` is the
-    // server-side capture endpoint, which a browser app never needs.
+    // Spelled out as reachability, not as a shape. Asserting
+    // `source !== "/ingest/:path*"` only guards the ONE spelling the author
+    // happened to write: `/ingest/:p*/`, `/ingest/:rest*` and
+    // `/ingest/:a/:b*` are all the same bug under different names, and a
+    // string compare waves each of them through. These paths are real
+    // PostHog endpoints that must not be proxied whatever the rule is
+    // called. `/api/*` is the authenticated management surface and the
+    // feature-polling surface (surveys, product tours, conversations — all
+    // three explicitly disabled in src/lib/analytics.ts, since posthog-js
+    // enables them by default); `/s/` is session-replay ingestion, which
+    // this app disables; `/batch/` is the server-side capture endpoint,
+    // which a browser app never calls.
     const forbidden = [
       "/ingest/api/projects/",
       "/ingest/api/users/@me/",
+      "/ingest/api/surveys/",
+      "/ingest/api/product_tours/",
+      "/ingest/api/early_access_features/",
       "/ingest/s/",
       "/ingest/batch/",
       "/ingest/decide/",
@@ -103,19 +111,37 @@ describe("/ingest analytics proxy", () => {
       expect(matches(rewrites, path), `${path} must be proxied`).toBe(true);
     }
   });
+
+  it("the forbidden-path check is sensitive to any catch-all spelling", async () => {
+    // Guards the guard. The negative assertions above are only worth
+    // anything if `matches()` really reports a wildcard as covering the
+    // forbidden paths; this test proves it does, for each spelling of the
+    // bug, without needing to edit next.config.ts to find out.
+    const forbidden = ["/ingest/api/projects/", "/ingest/s/", "/ingest/decide/"];
+    for (const source of ["/ingest/:path*", "/ingest/:p*", "/ingest/:rest*"]) {
+      for (const path of forbidden) {
+        expect(matches([{ source }], path), `${source} must cover ${path}`).toBe(true);
+      }
+    }
+  });
 });
 
 /**
  * Does any rewrite rule match `path`? Implements the only two `source`
- * shapes this config uses — an exact path, or a trailing `:path*` wildcard —
- * rather than pulling in Next's own matcher, so the expected semantics are
- * visible here instead of being asserted against the thing under test.
+ * shapes this config uses — an exact path, or a trailing named wildcard
+ * (`/:anything*`, under any parameter name) — rather than pulling in Next's
+ * own matcher, so the expected semantics are visible here instead of being
+ * asserted against the thing under test. The parameter name is matched
+ * loosely on purpose: `/ingest/:path*` and `/ingest/:rest*` are the same
+ * rule, and a check that only recognised one spelling would pass while the
+ * other reopened the hole.
  */
 function matches(rewrites: { source: string }[], path: string): boolean {
+  const WILDCARD = /\/:[A-Za-z_][A-Za-z0-9_]*\*\/?$/;
   return rewrites.some((r) => {
-    const wildcard = r.source.endsWith("/:path*");
-    if (!wildcard) return r.source === path;
-    const prefix = r.source.slice(0, -"/:path*".length);
+    const wildcard = r.source.match(WILDCARD);
+    if (!wildcard) return r.source === path || `${r.source}/` === path;
+    const prefix = r.source.slice(0, r.source.length - wildcard[0].length);
     return path === prefix || path.startsWith(`${prefix}/`);
   });
 }
