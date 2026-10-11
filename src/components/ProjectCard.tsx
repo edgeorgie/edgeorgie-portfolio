@@ -28,12 +28,10 @@ export function ProjectCard({
   project,
   index,
   activity,
-  priority = false,
 }: {
   project: Project;
   index: number;
   activity?: ReactNode;
-  priority?: boolean;
 }) {
   const p = project;
   return (
@@ -50,7 +48,7 @@ export function ProjectCard({
         <span className="font-mono text-[11px] text-fg-faint tnum">{String(index + 1).padStart(2, "0")}</span>
       </div>
 
-      <ProjectPreviewView preview={p.preview} priority={priority} />
+      <ProjectPreviewView preview={p.preview} />
 
       <div>
         <h3 id={`project-${p.slug}-title`} className="font-mono text-xl sm:text-2xl text-fg tracking-tight">

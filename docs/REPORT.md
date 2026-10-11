@@ -126,9 +126,29 @@ Page length: 390 px wide went from 16,715 px to 18,045 px. The old page was six 
 
 ## 7. Recommended next steps
 
-1. Resolve the title mismatch and set the WhatsApp number (five-minute owner tasks with outsized credibility effect).
+1. Resolve the title mismatch (owner task: the site, LinkedIn and the résumé behind the MCP should agree). The WhatsApp number is set.
 2. Add a real screenshot or short clip for triage-desk (the bot's PR comment) and crispy-profiling (a CLI report), captured from the real tools, to replace the schematic previews.
 3. Write one long-form case study page (e.g. ask-edgeorgie-mcp: retrieval design, guardrails, verification) and link it from the card; the card structure already anticipates it.
-4. Add `useReportWebVitals` → analytics once PostHog is enabled, to get field data instead of lab scores.
-5. Consider `display: optional` for Instrument Serif only on the OG/print paths, or subsetting it further, if field LCP on 3G matters.
-6. Publish agentlens under `@edgeorgie/agentlens` and promote it from "experiments" once it has a version with real pricing tables.
+4. Analytics: follow `docs/POSTHOG_PLAN.md` (phase 1 is the portfolio; web vitals come from posthog-js, so no `useReportWebVitals` wiring is needed).
+5. If field LCP on slow connections matters, the lever is the display fonts, not images (see §8): consider `display: optional` for Instrument Serif, or a smaller subset.
+6. Publish agentlens under `@edgeorgie/agentlens` once it has a version with real pricing tables.
+7. Point the GitHub profile's website link at `https://www.itsedgeorgie.dev` (it still goes to the retired `edgeorgie.vercel.app`).
+
+## 8. Follow-ups merged after this report
+
+- **#34** copy pass and section names ("How I use AI", "Ask me MCP"), the nine-project "More projects" grid with real previews, and the three-lane AI pipeline with no project nodes.
+- **#35** the owner's portrait (background replaced by a backdrop in the site's palette, subject untouched) beside the hero bio, on the Open Graph card and as `Person.image`; six of the owner's tools annotated on the pipeline step they were built for, with an "In the loop" strip linking each to its case study, live app or repo.
+- Dependencies, each merged after `verify` passed on a head up to date with `main`: actions/checkout v7, actions/setup-node v7, actions/upload-artifact v7, @types/node 26, ESLint 10, Playwright 1.64 (+ playwright-core) and @testing-library/dom 10.4.2. TypeScript 7 was closed: `typescript-eslint` inside `eslint-config-next` 16.4 rejects TS 7.0, so lint cannot pass until Next ships support.
+- Image loading cleanup: the deprecated `priority` prop is gone. The portrait uses `loading="eager"` (Next 16 still emits a preload link for it, but without the high fetch priority); the first two case-study previews, which sit below the fold on every viewport, are no longer preloaded.
+
+Production after #35 (three Lighthouse 13 runs from the sandbox against `www.itsedgeorgie.dev`): mobile performance 94–95, desktop 100; accessibility, best practices and SEO 100 on both.
+
+LCP experiment on one local build of the portrait change, mobile preset, three runs each (first run of each set discarded as cold start):
+
+| Portrait loading | Simulated LCP | FCP | TBT |
+| --- | --- | --- | --- |
+| `priority` (preload + high fetch priority) | 2.96–2.98 s | 1.37 s | 74–100 ms |
+| `loading="eager"` (preload link, normal fetch priority) | 2.99–3.16 s | 1.38 s | 66–120 ms |
+| default lazy (no preload, no previews preloaded) | 3.14–3.25 s | 1.16–1.37 s | 158–225 ms |
+
+The spread is run-to-run noise: the portrait is 3.5 KB at the served size and is not on the LCP path. The observed (unthrottled) trace paints FCP and LCP in the same frame at about 300 ms; the simulated 3 s LCP is the headline waiting on its display fonts over slow 4G. Any future LCP work belongs to the font strategy, not to images.

@@ -36,7 +36,6 @@ export function Projects() {
               <ProjectCard
                 project={p}
                 index={i}
-                priority={i < 2}
                 activity={
                   p.repo ? (
                     <Suspense fallback={null}>
