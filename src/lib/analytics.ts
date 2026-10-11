@@ -51,6 +51,17 @@ export function loadAnalytics(): Promise<PostHog | null> {
         capture_pageview: false, // manual, App-Router-aware (see Analytics.tsx)
         disable_session_recording: true,
         respect_dnt: true,
+        // Surveys, product tours and conversations each DEFAULT TO ENABLED in
+        // posthog-js (`disable_*: false` in its own defaults), and each one
+        // polls a separate `/api/...` endpoint on load. This app uses none of
+        // them, and the `/ingest` proxy in next.config.ts deliberately does
+        // not forward PostHog's `/api/*` surface — so leaving them on means
+        // three requests per page load that can only ever 404. Turning them
+        // off here is what makes that allowlist complete rather than
+        // merely narrow.
+        disable_surveys: true,
+        disable_product_tours: true,
+        disable_conversations: true,
       });
       posthog.register({ app: APP, surface: "web" });
       client = posthog;

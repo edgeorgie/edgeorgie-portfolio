@@ -86,19 +86,25 @@ With the proxy in place, CSP needs no PostHog origins; the portfolio's `posthogO
 
 ### 2.2 Browser facade (every Tier 1 app)
 
-Copy `src/lib/analytics.ts` from the portfolio: it dynamically imports `posthog-js` only when a key exists, queues `track()` calls made before the SDK loads, and is a no-op otherwise, so no app ever ships the SDK to users of a deployment without a key. Its `init` block becomes:
+Copy `src/lib/analytics.ts` from the portfolio: it dynamically imports `posthog-js` only when a key exists, queues `track()` calls made before the SDK loads, and is a no-op otherwise, so no app ever ships the SDK to users of a deployment without a key. Note that it explicitly sets `disable_surveys`, `disable_product_tours` and `disable_conversations` — posthog-js enables all three **by default**, and each polls its own `/api/...` endpoint on load, which the allowlisted proxy above deliberately does not forward. Copying the facade without those three lines is what would make the allowlist look wrong (three 404s per page load) when the real problem is unused features left on. Its `init` block becomes:
 
 ```ts
 posthog.init(key, {
   api_host: "/ingest",
   ui_host: "https://us.posthog.com",
-  defaults: "2026-05-30",
+  defaults: "2026-08-30",
   cookieless_mode: "always",
   person_profiles: "never",
+  ip: false,
   autocapture: false,
   capture_pageview: false, // sent manually with the app property
   disable_session_recording: true,
   respect_dnt: true,
+  // Default to ENABLED in posthog-js; each polls its own /api/... endpoint,
+  // which the proxy above does not forward. Off unless the app uses them.
+  disable_surveys: true,
+  disable_product_tours: true,
+  disable_conversations: true,
 });
 posthog.register({ app: "repoask", surface: "web" });
 ```

@@ -75,42 +75,36 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
   async rewrites() {
     // Same-origin proxy for analytics: tracking blockers filter by domain,
-    // and the CSP can stay pinned to 'self'.
+    // so a path on this origin survives them, and the CSP stays at 'self'.
     //
-    // TWO independent guards, because each closes a hole the other cannot.
+    // Two guards, because each closes a hole the other cannot.
     //
-    // 1. Gated on the key. An UNCONDITIONAL rewrite is not "a no-op until a
-    //    key is set": the proxy is a server-side route that exists whether or
-    //    not the client ever calls it, so without this guard the deployed site
-    //    forwards ANY body posted to /ingest/* straight to PostHog's public
-    //    ingestion API — an open relay on this domain that costs nothing to
-    //    abuse and whose traffic is attributed to this origin. Nothing on the
-    //    client side can close it, which is why #41's bundle work left it open.
+    // 1. Gated on the key, since a rewrite is a SERVER-side route: it exists
+    //    whether or not this site's own JS ever calls it. Ungated, the
+    //    deployment forwards any body posted to /ingest/* to PostHog's public
+    //    ingestion API — an open relay attributed to this origin. No
+    //    client-side change can close that, which is why #41's bundle work
+    //    left it open and #42 had to gate the route itself.
     //
-    // 2. An explicit path ALLOWLIST rather than a `/ingest/:path*` catch-all.
-    //    Guard 1 only holds while analytics is off; phase 1 of
-    //    docs/POSTHOG_PLAN.md sets the key on Vercel, and from that moment a
-    //    catch-all reopens the identical relay permanently — PostHog's
-    //    ingestion endpoints accept an unrecognised `api_key` with
-    //    `200 {"status":"Ok"}`, so no token check downstream limits who can
-    //    post through it. A catch-all also proxies PostHog's AUTHENTICATED
-    //    surface (`/api/projects/`, `/api/users/@me/`) through this origin,
-    //    where any future credential-bearing path becomes reachable from here.
-    //    The allowlist below is exactly what posthog-js requests under this
-    //    app's configuration; anything else 404s at the edge. Adding a
-    //    capability (surveys → `/api/surveys/`, session replay → `/s/`) is a
-    //    deliberate edit here, not an accident of a wildcard.
+    // 2. An explicit allowlist, because guard 1 stops holding the moment the
+    //    key is set. PostHog's ingestion endpoints answer an unrecognised
+    //    `api_key` with `200 {"status":"Ok"}`, so a `/ingest/:path*`
+    //    catch-all would reopen the same relay permanently once analytics
+    //    goes live — and would additionally expose PostHog's authenticated
+    //    `/api/*` surface through this domain. New capabilities get a line
+    //    here on purpose; a wildcard grants every future endpoint by default.
     if (!posthogEnabled) return [];
     return [
       // Assets host: the SDK bundle and the per-token remote config.
       { source: "/ingest/static/:path*", destination: "https://us-assets.i.posthog.com/static/:path*" },
       { source: "/ingest/array/:path*", destination: "https://us-assets.i.posthog.com/array/:path*" },
-      // Ingestion host, one rule per endpoint posthog-js actually calls under
-      // this configuration — verified against the pinned SDK's own source
-      // (`analyticsDefaultEndpoint = "/e/"`, flags at `/flags/?v=2`, internal
-      // telemetry at `/i/v1/*`). The legacy `/decide/` path is deliberately
-      // absent: `defaults: "2026-08-30"` uses `/flags/`, and an unused relay
-      // path is still a relay path.
+      // Ingestion host. One rule per endpoint the pinned posthog-js actually
+      // calls here (`analyticsDefaultEndpoint = "/e/"`, `/flags/?v=2`,
+      // `/i/v1/*`); Next matches on pathname only, so the query string on
+      // the flags call needs no rule of its own. Nothing under `/api/*` is
+      // listed, which is only COMPLETE because src/lib/analytics.ts disables
+      // surveys, product tours and conversations — posthog-js enables all
+      // three by default and each polls its own `/api/...` endpoint.
       { source: "/ingest/e/", destination: "https://us.i.posthog.com/e/" },
       { source: "/ingest/flags/", destination: "https://us.i.posthog.com/flags/" },
       { source: "/ingest/i/v1/:path*", destination: "https://us.i.posthog.com/i/v1/:path*" },
