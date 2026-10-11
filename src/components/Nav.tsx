@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "./Icon";
 import { links, sections } from "@/lib/site";
 
-const NAV_IDS = new Set(["work", "skills", "experience", "ask-me", "contact"]);
+const NAV_IDS = new Set(["work", "skills", "experience", "ai-workflow", "ask-me", "contact"]);
 const NAV = sections.filter((s) => NAV_IDS.has(s.id));
 
 /**
@@ -58,14 +58,15 @@ export function Nav() {
           <span className="sr-only"> Edwin Jorge, back to top</span>
         </a>
 
-        <div className="hidden md:flex items-center gap-7">
+        <div className="hidden md:flex items-center gap-5 lg:gap-7">
           {NAV.map((item) => (
             <a
               key={item.id}
               href={`#${item.id}`}
               className="font-mono text-[13px] text-fg-dim hover:text-fg transition-colors tracking-wide whitespace-nowrap"
             >
-              {item.label}
+              <span className="lg:hidden">{item.short}</span>
+              <span className="hidden lg:inline">{item.label}</span>
             </a>
           ))}
           <span className="h-4 w-px bg-line-strong" aria-hidden="true" />
