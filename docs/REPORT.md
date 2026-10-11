@@ -55,10 +55,10 @@ Fixed (see `docs/AUDIT.md` for the evidence behind each):
 Remaining (need the owner or are outside this repo):
 
 1. **Job title.** The site says "Senior Software Engineer"; the committed résumé and GitHub bio say "Software Engineer". Not changed; it is one constant in `src/lib/site.ts` (`person.title`). Decide and align the résumé, LinkedIn and site.
-2. **WhatsApp.** No number is published anywhere, so none was added. Set `NEXT_PUBLIC_WHATSAPP_NUMBER` (E.164 digits) in Vercel and the button appears in Contact and `/contact`.
+2. **WhatsApp.** Resolved after the first review: the owner supplied the number; it is the code default and `NEXT_PUBLIC_WHATSAPP_NUMBER` overrides it.
 3. **simplescope source.** The repository is not public under that name. If it exists privately or under another name, add an evidence link in `src/data/content.ts`.
-4. **GitHub profile "Portfolio" link** points at `edgeorgie.vercel.app` (404). Change it to `https://edgeorgie-portfolio.vercel.app` or add that domain to the Vercel project.
-5. **Vercel env.** Optionally set `NEXT_PUBLIC_SITE_URL`, `GITHUB_TOKEN` (raises the GitHub API limit for the "last push" line) and the PostHog keys. Everything works without them.
+4. **GitHub profile "Portfolio" link** points at `edgeorgie.vercel.app` (404). Change it to `https://www.itsedgeorgie.dev`.
+5. **Vercel env.** Optionally set `GITHUB_TOKEN` (raises the GitHub API limit for the "last push" line) and the PostHog keys. Everything works without them. The canonical domain is `https://www.itsedgeorgie.dev`; the vercel.app alias now redirects to it. Vercel Web Analytics and Speed Insights (added on `main` while this branch was open) render only when `VERCEL` is set at build time.
 6. **Playwright in CI** installs Chromium on every run (`npx playwright install --with-deps chromium`); cache it if CI minutes matter.
 
 ## 3. Design rationale

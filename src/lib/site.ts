@@ -8,17 +8,23 @@
  *  - GitHub + LinkedIn come from the public GitHub profile
  *    (https://github.com/edgeorgie lists both).
  *  - Email is the one on the committed resume.
- *  - WhatsApp is only rendered when NEXT_PUBLIC_WHATSAPP_NUMBER is set
- *    (E.164 digits, no "+", spaces or punctuation — the format wa.me
- *    expects). No number is published anywhere, so none is hard-coded.
+ *  - WhatsApp number was supplied by the owner for this purpose;
+ *    NEXT_PUBLIC_WHATSAPP_NUMBER overrides it. Non-digits are stripped, so
+ *    "+57 300 ..." and "57300..." both produce the wa.me format.
  */
+
+/**
+ * Canonical origin. The custom domain is the default (the apex redirects to
+ * www, and the vercel.app host redirects here too, see next.config.ts).
+ * NEXT_PUBLIC_SITE_URL overrides it for other deployments.
+ */
+export const PRODUCTION_HOST = "www.itsedgeorgie.dev";
+export const LEGACY_HOST = "edgeorgie-portfolio.vercel.app";
 
 function resolveSiteUrl(): string {
   const explicit = process.env.NEXT_PUBLIC_SITE_URL;
   if (explicit) return explicit.replace(/\/$/, "");
-  const vercelProd = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  if (vercelProd) return `https://${vercelProd}`;
-  return "https://edgeorgie-portfolio.vercel.app";
+  return `https://${PRODUCTION_HOST}`;
 }
 
 export const SITE_URL = resolveSiteUrl();
@@ -39,9 +45,10 @@ export const person = {
   availability: "Open to remote roles · relocation with sponsorship",
 } as const;
 
+const DEFAULT_WHATSAPP = "573002813676";
+
 function whatsappLink(): string | null {
-  const raw = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
-  if (!raw) return null;
+  const raw = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || DEFAULT_WHATSAPP;
   const digits = raw.replace(/\D/g, "");
   // E.164 is at most 15 digits; refuse anything that doesn't look like one.
   if (digits.length < 8 || digits.length > 15) return null;

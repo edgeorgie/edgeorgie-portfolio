@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { person } from "@/lib/site";
+import { PRODUCTION_HOST, person } from "@/lib/site";
 
 export const alt = `${person.name} — ${person.title}. Full-stack & AI-agent engineer.`;
 export const size = { width: 1200, height: 630 };
@@ -65,7 +65,7 @@ export default function OpenGraphImage() {
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 24, color: "#80808c", fontFamily: "ui-monospace, monospace" }}>
           <span>github.com/{person.handle}</span>
-          <span>edgeorgie-portfolio.vercel.app</span>
+          <span>{PRODUCTION_HOST}</span>
         </div>
       </div>
     ),

@@ -24,14 +24,18 @@ function buildCsp(): string {
     ? [posthogHost, posthogHost.replace("://", "://us-assets.").replace("us-assets.us.", "us-assets.")]
     : [];
   const previewTools = isProd ? [] : ["https://vercel.live", "https://*.vercel.live"];
+  // @vercel/analytics and @vercel/speed-insights load from /_vercel/* (same
+  // origin) in production; in development they load their debug scripts
+  // from va.vercel-scripts.com.
+  const vercelDev = isDev ? ["https://va.vercel-scripts.com"] : [];
 
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : []), ...posthogOrigins, ...previewTools],
+    "script-src": ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : []), ...vercelDev, ...posthogOrigins, ...previewTools],
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "blob:"],
     "font-src": ["'self'", "data:"],
-    "connect-src": ["'self'", ...posthogOrigins, ...previewTools],
+    "connect-src": ["'self'", ...vercelDev, ...posthogOrigins, ...previewTools],
     "frame-src": previewTools.length ? previewTools : ["'none'"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
@@ -72,6 +76,18 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
+  },
+  // One canonical host: the project's vercel.app alias permanently redirects
+  // to the custom domain (preview deployments use other hosts and are unaffected).
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "edgeorgie-portfolio.vercel.app" }],
+        destination: "https://www.itsedgeorgie.dev/:path*",
+        permanent: true,
+      },
+    ];
   },
   async headers() {
     return [

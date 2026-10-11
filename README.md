@@ -2,7 +2,7 @@
 
 Personal portfolio for Edwin Jorge (edgeorgie), software engineer at Mercado Libre.
 
-Live: https://edgeorgie-portfolio.vercel.app
+Live: https://www.itsedgeorgie.dev (the `edgeorgie-portfolio.vercel.app` alias redirects there)
 
 ## Stack
 
@@ -10,6 +10,7 @@ Live: https://edgeorgie-portfolio.vercel.app
 - Tailwind CSS v4 with the design tokens registered in `src/app/globals.css`
 - framer-motion (`LazyMotion` + `domAnimation`, only for stateful interactions); entrances are CSS
 - Vitest + Testing Library (unit), Playwright + axe-core (e2e)
+- Vercel Web Analytics + Speed Insights (rendered only when `VERCEL` is set at build time)
 - Deployed on Vercel
 
 ## What's on it
@@ -23,7 +24,7 @@ Section order (`src/lib/site.ts` drives the header nav, dot nav and numbering):
 5. **How I use AI** — the operator/builder workflow diagram and nine principles.
 6. **Console** — an embedded terminal. Slash commands (`/help`, `/projects`, `/skills`, `/contact`, …) run offline; anything else is proxied to the live [ask-edgeorgie-mcp](https://github.com/edgeorgie/ask-edgeorgie-mcp) engine via `/api/ask-me` and answered with file:line citations.
 7. **Beyond the code** — a tap-to-reveal timeline.
-8. **Contact** — email, LinkedIn, GitHub and (when configured) WhatsApp.
+8. **Contact** — email, LinkedIn, GitHub and WhatsApp.
 
 No invented metrics anywhere: every number traces back to a committed benchmark, a CI run, the npm registry or a live URL. `docs/AUDIT.md` records the audit that shaped the current version.
 
@@ -43,8 +44,8 @@ Copy `.env.local.example` to `.env.local`.
 
 | Variable | Purpose |
 | --- | --- |
-| `NEXT_PUBLIC_SITE_URL` | Canonical origin for metadata/OG/sitemap. Falls back to `VERCEL_PROJECT_PRODUCTION_URL`, then the production URL. |
-| `NEXT_PUBLIC_WHATSAPP_NUMBER` | E.164 digits only (no `+`, spaces or dashes). Renders a WhatsApp button in Contact and `/contact`. Unset → hidden. |
+| `NEXT_PUBLIC_SITE_URL` | Canonical origin for metadata/OG/sitemap. Defaults to `https://www.itsedgeorgie.dev`. |
+| `NEXT_PUBLIC_WHATSAPP_NUMBER` | Overrides the WhatsApp number (digits; `+`, spaces and dashes are stripped). The owner's number is the code default. |
 | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` | Product analytics. Unset → the SDK is never downloaded. |
 | `GITHUB_TOKEN` (server only) | Raises the GitHub API rate limit for the "last push" line. Never sent to the client. |
 
