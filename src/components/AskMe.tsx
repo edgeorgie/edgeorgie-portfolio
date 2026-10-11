@@ -55,9 +55,19 @@ function StreamingAnswer({ text, onDone }: { text: string; onDone?: () => void }
   const words = text.split(/(\s+)/);
   const [count, setCount] = useState(0);
 
-  useEffect(() => {
+  // Reset the stream when `text` changes, using React's documented
+  // "adjust state during render" pattern rather than an effect. Doing this
+  // in an effect (setCount(0) in useEffect([text])) both trips
+  // react-hooks/set-state-in-effect and is genuinely wrong: the effect only
+  // runs *after* the render that already sliced the NEW text with the OLD
+  // count, so a text swap briefly paints the wrong number of words before
+  // snapping back. Adjusting during render re-renders before paint, so the
+  // intermediate state is never visible.
+  const [renderedText, setRenderedText] = useState(text);
+  if (renderedText !== text) {
+    setRenderedText(text);
     setCount(0);
-  }, [text]);
+  }
 
   useEffect(() => {
     if (count >= words.length) {
