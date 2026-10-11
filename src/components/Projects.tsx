@@ -19,7 +19,7 @@ export function Projects() {
                 Six things you can <em>run today</em>.
               </>
             }
-            lede="Each one is public with a repo or a live URL, and every number traces back to a committed benchmark, a CI run or the npm registry. Open a card for the problem, my role, the architecture and what was hard."
+            lede="All six are public: a repo, a live URL or an npm package. Every number traces back to a committed benchmark, a CI run or the registry. Expand a card for the problem, my role, the architecture and what was hard."
             aside={
               <a href={links.github} target="_blank" rel="noreferrer" className="btn">
                 <Icon name="github" className="w-4 h-4" />
@@ -53,7 +53,7 @@ export function Projects() {
             <div>
               <p className="kicker">Experiments</p>
               <p className="mt-3 text-sm text-fg-dim leading-relaxed">
-                Smaller public repos, pinned on GitHub. Descriptions are the ones from their READMEs.
+                Smaller public repos, pinned on GitHub and described in their own words.
               </p>
             </div>
             <ul className="grid gap-x-8 gap-y-5 sm:grid-cols-2">

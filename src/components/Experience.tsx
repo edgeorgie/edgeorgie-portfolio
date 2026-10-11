@@ -14,7 +14,7 @@ export function Experience() {
                 Production engineering at <em>LATAM scale</em>.
               </>
             }
-            lede="Sourced from the résumé only. Every bullet is something I owned, not something a team I sat near delivered."
+            lede="Taken from my résumé, nothing added. Each bullet is work I owned end to end."
           />
         </Reveal>
 

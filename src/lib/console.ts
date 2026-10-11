@@ -85,7 +85,7 @@ export function runCommand(input: string): CommandResult | null {
         lines: [
           { text: `endpoint  ${links.askMcpEndpoint}`, href: links.askMcpEndpoint },
           { text: "tools     get_experience · get_projects · get_story · ask_about_edgeorgie" },
-          { text: "Paste the config below this console into Claude Desktop or Cursor.", muted: true },
+          { text: "Paste the config under this terminal into Claude Desktop or Cursor.", muted: true },
         ],
       };
     case "whoami":

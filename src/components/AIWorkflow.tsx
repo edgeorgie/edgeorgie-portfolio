@@ -256,10 +256,10 @@ export function AIWorkflow() {
             id="ai-workflow"
             title={
               <>
-                How I use AI, <em>every day</em>.
+                AI, run like <em>production</em>.
               </>
             }
-            lede="An orchestration layer with its own operating discipline, built the same way I'd build any system I'm accountable for in production. The five projects above all run through this."
+            lede="Not a chat window. An orchestration layer with its own operating discipline: scheduled, gated, parallel, verified and reviewed cold, the same way I run any system I'm accountable for. Every project above went through it."
           />
         </Reveal>
 

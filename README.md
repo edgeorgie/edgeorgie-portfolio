@@ -22,7 +22,7 @@ Section order (`src/lib/site.ts` drives the header nav, dot nav and numbering):
 3. **Skills** — a character sheet: capabilities grouped by what they let me do, each marked as used in production (Mercado Libre) or in a public project; "unlocked" achievements, each with a source link.
 4. **Experience** — sourced from the résumé only.
 5. **How I use AI** — the operator/builder workflow diagram and nine principles.
-6. **Console** — an embedded terminal. Slash commands (`/help`, `/projects`, `/skills`, `/contact`, …) run offline; anything else is proxied to the live [ask-edgeorgie-mcp](https://github.com/edgeorgie/ask-edgeorgie-mcp) engine via `/api/ask-me` and answered with file:line citations.
+6. **Ask me MCP** — an embedded terminal. Slash commands (`/help`, `/projects`, `/skills`, `/contact`, …) run offline; anything else is proxied to the live [ask-edgeorgie-mcp](https://github.com/edgeorgie/ask-edgeorgie-mcp) engine via `/api/ask-me` and answered with file:line citations.
 7. **Beyond the code** — a tap-to-reveal timeline.
 8. **Contact** — email, LinkedIn, GitHub and WhatsApp.
 
