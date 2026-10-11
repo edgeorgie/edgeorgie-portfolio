@@ -60,7 +60,7 @@ export function Beyond() {
                 The same habit, from <em>age 15</em> to now.
               </>
             }
-            lede="Build it yourself to understand it, whatever “it” is. Each step is a real beat from the recruiter FAQ the console reads from."
+            lede="Build it yourself to understand it, whatever “it” is. Six real beats, in order, from the same FAQ the MCP server reads."
           />
         </Reveal>
         <div className="max-w-2xl">

@@ -25,8 +25,8 @@ export function Skills() {
             }
             lede={
               <>
-                A filled dot means used professionally at {person.company}; a project name means you can read the code on
-                this page. No percentages: evidence instead.
+                No self-rated bars. A filled dot means I&rsquo;ve used it in production at {person.company}; a project name
+                means the code is on this page.
               </>
             }
           />
@@ -49,7 +49,7 @@ export function Skills() {
                 <Row k="langs" v="TypeScript · JS · Kotlin · Swift · Python" />
               </dl>
               <div className="border-t border-line pt-5">
-                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-fg-faint mb-3">Unlocked</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-fg-faint mb-3">Unlocked · achievements</p>
                 <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                   {achievements.map((a) => (
                     <li key={a.id} className="flex gap-3">

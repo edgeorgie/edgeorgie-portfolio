@@ -22,7 +22,7 @@ export function Contact() {
                 Let&rsquo;s build something <em>people rely on</em>.
               </>
             }
-            lede={`${person.availability}. Everything above links to a real repo, run or deployment. Happy to walk through any of it.`}
+            lede="Open to remote roles, and to relocating with sponsorship. Everything above links to a real repo, run or deployment, and I'm happy to walk through any of it on a call."
           />
         </Reveal>
 
