@@ -81,8 +81,8 @@ export const sections: { id: SectionId; label: string; short: string }[] = [
   { id: "work", label: "Work", short: "Work" },
   { id: "skills", label: "Skills", short: "Skills" },
   { id: "experience", label: "Experience", short: "Experience" },
-  { id: "ai-workflow", label: "How I use AI", short: "AI" },
-  { id: "ask-me", label: "Console", short: "Console" },
+  { id: "ai-workflow", label: "How I use AI", short: "AI workflow" },
+  { id: "ask-me", label: "Ask me MCP", short: "Ask me" },
   { id: "beyond", label: "Beyond the code", short: "Beyond" },
   { id: "contact", label: "Contact", short: "Contact" },
 ];

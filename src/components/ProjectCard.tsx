@@ -79,7 +79,7 @@ export function ProjectCard({
 
       <details className="disclosure group/d rounded-xl border border-line bg-bg/60">
         <summary className="flex items-center justify-between gap-3 px-4 py-3 font-mono text-[12px] text-fg-dim hover:text-fg transition-colors">
-          <span>Problem · role · architecture · challenges</span>
+          <span>Case study: problem, role, architecture, challenges</span>
           <Icon name="plus" className="disclosure-icon w-4 h-4 shrink-0" />
         </summary>
         <div className="px-4 pb-5 pt-1 flex flex-col gap-5 text-[14px] leading-relaxed text-fg-dim">

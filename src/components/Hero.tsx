@@ -35,9 +35,10 @@ export function Hero() {
         <div className="mt-8 md:mt-10 grid gap-10 lg:grid-cols-[1.15fr_1fr] lg:items-start [&>*]:min-w-0">
           <div className="anim-rise" style={{ "--d": "140ms" } as React.CSSProperties}>
             <p className="lede text-lg md:text-xl max-w-xl">
-              Five years shipping production <span className="text-fg">web, native mobile and smart‑TV</span> surfaces at
-              LATAM scale. On the side, a public set of <span className="text-fg">AI‑agent systems</span>: two live MCP
-              servers, a webhook‑triggered triage bot, an eval CLI and a React profiler on npm. All runnable today.
+              Senior engineer at Mercado Libre: five years shipping production{" "}
+              <span className="text-fg">web, native mobile and smart‑TV</span> surfaces to millions of users across LATAM.
+              Outside work I build <span className="text-fg">AI‑agent systems</span> in public: two live MCP servers, a
+              GitHub triage bot, an eval CLI and a React profiler on npm. Everything here runs today.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -54,12 +55,12 @@ export function Hero() {
                 LinkedIn
               </a>
               <a href="#ask-me" className="font-mono text-sm text-fg-dim hover:text-accent transition-colors underline-link ml-1">
-                or ask the console →
+                or ask the MCP about me →
               </a>
             </div>
 
             <dl className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-5 max-w-xl border-t border-line pt-6">
-              <Fact value="4.3M+" label="users on the surfaces I ship" />
+              <Fact value="4.3M+" label="users across the surfaces I ship" />
               <Fact value="6" label="public projects, runnable today" />
               <Fact value="5+" label="years in production" />
               <Fact value={person.timezoneLabel} label="Barranquilla · remote" />
@@ -69,7 +70,7 @@ export function Hero() {
           <div className="anim-rise lg:justify-self-end w-full min-w-0" style={{ "--d": "220ms" } as React.CSSProperties}>
             <HeroTerminal />
             <p className="mt-3 font-mono text-[11px] text-fg-faint max-w-xl">
-              That endpoint is a real MCP server about my work. The console further down calls the same engine.
+              A real MCP server that answers questions about my work, with citations. Try it yourself in Ask me MCP, further down.
             </p>
           </div>
         </div>
