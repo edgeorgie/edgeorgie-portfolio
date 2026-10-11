@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { COMMANDS, isCommand, runCommand } from "./console";
-import { projects, experience } from "@/data/content";
+import { projects, moreProjects, experience } from "@/data/content";
 import { links } from "@/lib/site";
 
 describe("console commands", () => {
@@ -22,10 +22,15 @@ describe("console commands", () => {
   it("/projects links every project to its card anchor", () => {
     const r = runCommand("/projects");
     if (r?.kind !== "output") throw new Error("expected output");
-    expect(r.lines).toHaveLength(projects.length);
+    expect(r.lines.filter((l) => l.href)).toHaveLength(projects.length + moreProjects.length);
+    const first = (text: string) => text.trim().split(/\s+/)[0];
     for (const p of projects) {
-      const line = r.lines.find((l) => l.text.startsWith(p.name));
+      const line = r.lines.find((l) => first(l.text) === p.name);
       expect(line?.href).toBe(`#project-${p.slug}`);
+    }
+    for (const p of moreProjects) {
+      const line = r.lines.find((l) => first(l.text) === p.name);
+      expect(line?.href).toBe(`#repo-${p.name}`);
     }
   });
 

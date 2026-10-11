@@ -148,9 +148,9 @@ export function AskMe() {
             }
             lede={
               <>
-                This console calls the same live <code className="font-mono text-[0.9em] text-fg">ask_about_edgeorgie</code>{" "}
-                engine any MCP client would: retrieval over my résumé, reliability report, build log and recruiter FAQ, cited
-                by file and line. Slash commands run locally and never leave the page.
+                This terminal talks to <code className="font-mono text-[0.9em] text-fg">ask-edgeorgie-mcp</code>, a public MCP
+                server I built about my own work. Answers come from my résumé, reliability report, build log and recruiter
+                FAQ, cited by file and line. Slash commands run locally and never leave the page.
               </>
             }
           />
@@ -190,7 +190,7 @@ export function AskMe() {
             >
               {history.length === 0 && !loading && (
                 <p className="font-mono text-sm text-fg-dim">
-                  Ask a real question, e.g. &ldquo;What has this person built with AI agents?&rdquo; Or type{" "}
+                  Ask anything a recruiter would, e.g. &ldquo;What has this person built with AI agents?&rdquo; Or type{" "}
                   <button type="button" onClick={() => void submit("/help")} className="text-accent underline-link">
                     /help
                   </button>
@@ -337,7 +337,7 @@ export function AskMe() {
         <Reveal delay={0.15}>
           <div className="mt-6 panel p-5 md:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-fg-faint">Prefer to connect your own agent?</p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-fg-faint">Point your own agent at it</p>
               <button type="button" onClick={copyConfig} className="btn !py-2 !px-3.5 text-[12px]">
                 <Icon name={copied ? "check" : "copy"} className="w-3.5 h-3.5" />
                 {copied ? "Copied" : "Copy config"}
@@ -351,7 +351,7 @@ export function AskMe() {
               {MCP_CONFIG}
             </pre>
             <p className="mt-3 font-mono text-[11px] text-fg-faint">
-              Drop this into Claude Desktop or Cursor for get_experience · get_projects · get_story · ask_about_edgeorgie.{" "}
+              Paste into Claude Desktop or Cursor to get get_experience · get_projects · get_story · ask_about_edgeorgie as tools.{" "}
               <a href={links.askMcp} target="_blank" rel="noreferrer" className="underline-link text-fg-dim">
                 Open the standalone endpoint ↗
               </a>
