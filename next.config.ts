@@ -3,8 +3,6 @@ import type { NextConfig } from "next";
 const isProd = process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
 // React needs eval() for its development-only debugging features; never in production.
 const isDev = process.env.NODE_ENV === "development";
-const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
 
 /**
  * Content Security Policy.
@@ -15,14 +13,12 @@ const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.postho
  * Server Component payload and the hydration bootstrap that Next.js
  * inlines. What the policy still enforces: no plugins, no framing, no
  * base-URI hijack, no form exfiltration, and `connect-src`/`img-src`/
- * `font-src` pinned to this origin (+ PostHog only when a key is set).
+ * `font-src` pinned to this origin. Analytics needs no extra origin: it is
+ * proxied through `/ingest` (see `rewrites()` below).
  *
  * Vercel's preview toolbar (`vercel.live`) is allowed outside production.
  */
 function buildCsp(): string {
-  const posthogOrigins = posthogKey
-    ? [posthogHost, posthogHost.replace("://", "://us-assets.").replace("us-assets.us.", "us-assets.")]
-    : [];
   const previewTools = isProd ? [] : ["https://vercel.live", "https://*.vercel.live"];
   // @vercel/analytics and @vercel/speed-insights load from /_vercel/* (same
   // origin) in production; in development they load their debug scripts
@@ -31,11 +27,11 @@ function buildCsp(): string {
 
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : []), ...vercelDev, ...posthogOrigins, ...previewTools],
+    "script-src": ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : []), ...vercelDev, ...previewTools],
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "blob:"],
     "font-src": ["'self'", "data:"],
-    "connect-src": ["'self'", ...vercelDev, ...posthogOrigins, ...previewTools],
+    "connect-src": ["'self'", ...vercelDev, ...previewTools],
     "frame-src": previewTools.length ? previewTools : ["'none'"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
@@ -66,6 +62,18 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
+  // PostHog endpoints end in "/" (e.g. /e/); Next's trailing-slash redirect would drop events.
+  skipTrailingSlashRedirect: true,
+  async rewrites() {
+    // Same-origin proxy for analytics: tracking blockers filter by domain,
+    // and the CSP can stay pinned to 'self'. Order matters: static and
+    // array before the catch-all. No-op traffic-wise until a key is set.
+    return [
+      { source: "/ingest/static/:path*", destination: "https://us-assets.i.posthog.com/static/:path*" },
+      { source: "/ingest/array/:path*", destination: "https://us-assets.i.posthog.com/array/:path*" },
+      { source: "/ingest/:path*", destination: "https://us.i.posthog.com/:path*" },
+    ];
+  },
   images: {
     formats: ["image/avif", "image/webp"],
   },

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { SITE_URL, links, sectionNumber, sections } from "./site";
+import { SITE_URL, links, sectionNumber, sections, withUtm } from "./site";
 import { formatPushDate } from "@/components/RepoActivity";
 
 describe("site", () => {
@@ -27,5 +27,17 @@ describe("formatPushDate", () => {
     expect(formatPushDate("2026-10-10T14:20:15Z")).toBe("10 Oct 2026");
     expect(formatPushDate("2026-01-01T00:00:00Z")).toBe("1 Jan 2026");
     expect(formatPushDate("not a date")).toBe("");
+  });
+});
+
+describe("withUtm", () => {
+  it("tags links into the owner's vercel.app apps", () => {
+    expect(withUtm("https://repoask.vercel.app")).toBe("https://repoask.vercel.app/?utm_source=portfolio&utm_medium=card");
+    expect(withUtm("https://repoask.vercel.app/?x=1", "hero")).toBe("https://repoask.vercel.app/?x=1&utm_source=portfolio&utm_medium=hero");
+  });
+  it("leaves other hosts, existing campaigns and bad input alone", () => {
+    expect(withUtm("https://github.com/edgeorgie/repoask")).toBe("https://github.com/edgeorgie/repoask");
+    expect(withUtm("https://repoask.vercel.app/?utm_source=x")).toBe("https://repoask.vercel.app/?utm_source=x");
+    expect(withUtm("not a url")).toBe("not a url");
   });
 });

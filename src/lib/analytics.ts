@@ -1,14 +1,19 @@
 /**
- * Thin analytics facade.
+ * Thin analytics facade (PostHog), shared shape across the owner's apps.
  *
- * posthog-js is ~100 KB gzipped. The previous setup imported it statically
- * from instrumentation-client.ts, AskMe.tsx and PostHogPageview.tsx, so it
- * shipped to every visitor even when no NEXT_PUBLIC_POSTHOG_KEY was set
- * (which is the case on the production deployment — docs/AUDIT.md C4).
+ * - No key → `track()` is a no-op and posthog-js is never downloaded.
+ * - With a key → the SDK is dynamically imported after hydration, off the
+ *   critical path; events queued before it loads are flushed.
+ * - Cookieless: no cookies, no storage, no consent banner. PostHog derives
+ *   a daily anonymous id server-side; `identify()` is never called.
+ * - Transport goes through this origin (`/ingest`, see next.config.ts), so
+ *   tracking blockers that filter by domain do not drop it and the CSP
+ *   stays pinned to 'self'.
+ * - Every event carries `app` and `surface` so one PostHog project can hold
+ *   every app. Never send user content (questions, notes, pasted text):
+ *   only buckets, counts, booleans, durations and public identifiers.
  *
- * Now: no key → `track()` is a no-op and the library is never downloaded.
- * With a key → the library is dynamically imported after hydration, off
- * the critical path, and events queued before it loads are flushed.
+ * See docs/POSTHOG_PLAN.md.
  */
 import type { PostHog } from "posthog-js";
 
@@ -16,6 +21,10 @@ type Props = Record<string, string | number | boolean | null | undefined>;
 
 export const ANALYTICS_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 export const analyticsEnabled = Boolean(ANALYTICS_KEY);
+/** The `app` super property; the same PostHog project holds every app. */
+export const APP = "portfolio";
+/** Same-origin path proxied to PostHog by next.config.ts rewrites. */
+export const ANALYTICS_HOST = "/ingest";
 
 let client: PostHog | null = null;
 let loading: Promise<PostHog | null> | null = null;
@@ -28,19 +37,18 @@ export function loadAnalytics(): Promise<PostHog | null> {
   loading = import("posthog-js")
     .then(({ default: posthog }) => {
       posthog.init(ANALYTICS_KEY as string, {
-        api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
+        api_host: ANALYTICS_HOST,
         ui_host: "https://us.posthog.com",
-        defaults: "2025-05-24",
-        // Privacy-conscious defaults for a public portfolio:
-        ip: false, // anonymise IP
-        autocapture: false, // only the deliberate events below
-        disable_session_recording: true,
+        defaults: "2026-08-30",
+        cookieless_mode: "always",
+        person_profiles: "never",
+        ip: false,
+        autocapture: false,
         capture_pageview: false, // manual, App-Router-aware (see Analytics.tsx)
-        capture_pageleave: true,
-        // localStorage only: no analytics cookie is set, so no consent banner
-        // is needed for a first-party, anonymised, opt-in-by-config setup.
-        persistence: "localStorage",
+        disable_session_recording: true,
+        respect_dnt: true,
       });
+      posthog.register({ app: APP, surface: "web" });
       client = posthog;
       for (const q of queue.splice(0)) posthog.capture(q.event, q.props);
       return posthog;
@@ -58,4 +66,34 @@ export function track(event: string, props?: Props): void {
   }
   queue.push({ event, props });
   void loadAnalytics();
+}
+
+/** Coarse size of a free-text input, so no length can fingerprint a visitor. */
+export function lengthBucket(length: number): "<40" | "40-120" | "120-300" | "300+" {
+  if (length < 40) return "<40";
+  if (length < 120) return "40-120";
+  if (length < 300) return "120-300";
+  return "300+";
+}
+
+/**
+ * Reads a declarative event off an element: `data-track="evidence_clicked"`
+ * names the event, every `data-track-*` attribute becomes a snake_case
+ * property (`data-track-kind="live"` → `{ kind: "live" }`). Lets server
+ * components emit events without becoming client components.
+ */
+export function eventFromElement(el: Element): { event: string; props: Props } | null {
+  const dataset = (el as HTMLElement).dataset;
+  const event = dataset?.track;
+  if (!event) return null;
+  const props: Props = {};
+  for (const [key, value] of Object.entries(dataset)) {
+    if (key === "track" || !key.startsWith("track")) continue;
+    const name = key
+      .slice("track".length)
+      .replace(/^[A-Z]/, (c) => c.toLowerCase())
+      .replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+    props[name] = value ?? "";
+  }
+  return { event, props };
 }

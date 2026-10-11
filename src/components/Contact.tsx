@@ -28,21 +28,45 @@ export function Contact() {
 
         <Reveal delay={0.05}>
           <div className="mt-10 flex flex-wrap items-center gap-3">
-            <a href={links.mailto} className="btn btn-primary">
+            <a href={links.mailto} className="btn btn-primary" data-track="contact_clicked" data-track-channel="email" data-track-placement="contact">
               <Icon name="mail" className="w-4 h-4" />
               {links.email}
             </a>
             <CopyButton value={links.email} label="Copy email" />
-            <a href={links.linkedin} target="_blank" rel="noreferrer" className="btn">
+            <a
+              href={links.linkedin}
+              target="_blank"
+              rel="noreferrer"
+              className="btn"
+              data-track="contact_clicked"
+              data-track-channel="linkedin"
+              data-track-placement="contact"
+            >
               <Icon name="linkedin" className="w-4 h-4" />
               LinkedIn
             </a>
-            <a href={links.github} target="_blank" rel="noreferrer" className="btn">
+            <a
+              href={links.github}
+              target="_blank"
+              rel="noreferrer"
+              className="btn"
+              data-track="contact_clicked"
+              data-track-channel="github"
+              data-track-placement="contact"
+            >
               <Icon name="github" className="w-4 h-4" />
               GitHub
             </a>
             {links.whatsapp && (
-              <a href={links.whatsapp} target="_blank" rel="noreferrer" className="btn">
+              <a
+                href={links.whatsapp}
+                target="_blank"
+                rel="noreferrer"
+                className="btn"
+                data-track="contact_clicked"
+                data-track-channel="whatsapp"
+                data-track-placement="contact"
+              >
                 <Icon name="whatsapp" className="w-4 h-4" />
                 WhatsApp
               </a>
@@ -62,7 +86,15 @@ export function Contact() {
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
               <span>Next.js 16 · React 19 · Tailwind 4 · Vercel</span>
-              <a href={REPO_URL} target="_blank" rel="noreferrer" className="underline-link text-fg-dim">
+              <a
+                href={REPO_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="underline-link text-fg-dim"
+                data-track="outbound_clicked"
+                data-track-target="portfolio"
+                data-track-kind="repo"
+              >
                 source ↗
               </a>
             </div>

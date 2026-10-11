@@ -64,19 +64,40 @@ export function Hero() {
             </div>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <a href="#work" className="btn btn-primary">
+              <a href="#work" className="btn btn-primary" data-track="cta_clicked" data-track-target="work">
                 See the work
                 <Icon name="arrowDown" className="w-4 h-4" />
               </a>
-              <a href={links.github} target="_blank" rel="noreferrer" className="btn">
+              <a
+                href={links.github}
+                target="_blank"
+                rel="noreferrer"
+                className="btn"
+                data-track="contact_clicked"
+                data-track-channel="github"
+                data-track-placement="hero"
+              >
                 <Icon name="github" className="w-4 h-4" />
                 GitHub
               </a>
-              <a href={links.linkedin} target="_blank" rel="noreferrer" className="btn">
+              <a
+                href={links.linkedin}
+                target="_blank"
+                rel="noreferrer"
+                className="btn"
+                data-track="contact_clicked"
+                data-track-channel="linkedin"
+                data-track-placement="hero"
+              >
                 <Icon name="linkedin" className="w-4 h-4" />
                 LinkedIn
               </a>
-              <a href="#ask-me" className="font-mono text-sm text-fg-dim hover:text-accent transition-colors underline-link ml-1">
+              <a
+                href="#ask-me"
+                className="font-mono text-sm text-fg-dim hover:text-accent transition-colors underline-link ml-1"
+                data-track="cta_clicked"
+                data-track-target="ask-me"
+              >
                 or ask the MCP about me →
               </a>
             </div>

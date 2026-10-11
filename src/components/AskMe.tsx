@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useId, useSyncExternalStore } from "react";
 import { m, AnimatePresence } from "framer-motion";
-import { track } from "@/lib/analytics";
+import { lengthBucket, track } from "@/lib/analytics";
 import { runCommand, type ConsoleLine } from "@/lib/console";
 import { links } from "@/lib/site";
 import { Reveal } from "./Reveal";
@@ -85,31 +85,42 @@ export function AskMe() {
         return;
       }
       setHistory((h) => [...h, { id: nextId.current++, kind: "cmd", q: trimmed, lines: local.lines }]);
-      track("console_command", { command: local.command });
+      track("console_command_run", { command: local.command });
       return;
     }
 
     if (trimmed.length < 3) return;
     setLoading(true);
     setError(null);
-    track("ask_me_question_submitted", {
-      question_length: trimmed.length,
-      question_preview: trimmed.slice(0, 80),
-      is_suggestion: SUGGESTIONS.includes(trimmed),
-    });
+    // Shape of the question only, never its text (docs/POSTHOG_PLAN.md §4).
+    const asked = { length_bucket: lengthBucket(trimmed.length), top_k: 4, is_suggestion: SUGGESTIONS.includes(trimmed) };
+    const startedAt = performance.now();
+    let status = 0;
     try {
       const res = await fetch("/api/ask-me", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: trimmed, topK: 4 }),
       });
+      status = res.status;
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong.");
       setHistory((h) => [...h, { id: nextId.current++, kind: "ask", q: trimmed, a: data, streamed: false }]);
-      track("ask_me_answer_received", { answer_mode: data.answerMode, citation_count: data.citations?.length ?? 0 });
+      track("question_asked", {
+        ...asked,
+        answered: true,
+        answer_mode: data.answerMode,
+        citations: data.citations?.length ?? 0,
+        latency_ms: Math.round(performance.now() - startedAt),
+      });
     } catch (err) {
       setError((err as Error).message);
-      track("ask_me_answer_failed", { error: (err as Error).message });
+      track("question_asked", {
+        ...asked,
+        answered: false,
+        reason: status === 429 ? "rate_limited" : status >= 500 ? "upstream" : status ? "rejected" : "network",
+        latency_ms: Math.round(performance.now() - startedAt),
+      });
     } finally {
       setLoading(false);
     }

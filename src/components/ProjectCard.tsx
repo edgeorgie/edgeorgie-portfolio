@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { Project, EvidenceKind } from "@/data/content";
+import { withUtm } from "@/lib/site";
 import { Icon, type IconName } from "./Icon";
 import { ProjectPreviewView } from "./ProjectPreviews";
 
@@ -75,7 +76,7 @@ export function ProjectCard({
         ))}
       </div>
 
-      <details className="disclosure group/d rounded-xl border border-line bg-bg/60">
+      <details className="disclosure group/d rounded-xl border border-line bg-bg/60" data-track="project_opened" data-track-slug={p.slug}>
         <summary className="flex items-center justify-between gap-3 px-4 py-3 font-mono text-[12px] text-fg-dim hover:text-fg transition-colors">
           <span>Case study: problem, role, architecture, challenges</span>
           <Icon name="plus" className="disclosure-icon w-4 h-4 shrink-0" />
@@ -112,10 +113,13 @@ export function ProjectCard({
         {p.evidence.map((e) => (
           <a
             key={e.href}
-            href={e.href}
+            href={e.kind === "live" ? withUtm(e.href) : e.href}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1.5 font-mono text-[12.5px] text-fg underline-link"
+            data-track="evidence_clicked"
+            data-track-slug={p.slug}
+            data-track-kind={e.kind}
           >
             <Icon name={EVIDENCE_ICON[e.kind]} className="w-3.5 h-3.5 text-fg-dim" />
             {e.label}
