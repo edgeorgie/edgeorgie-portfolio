@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { PostHogPageview } from "@/components/PostHogPageview";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full bg-bg text-fg bg-grain relative">
         <PostHogPageview />
         {children}
+        <SpeedInsights />
       </body>
     </html>
   );
