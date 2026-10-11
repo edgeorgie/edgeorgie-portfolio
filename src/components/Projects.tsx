@@ -4,7 +4,8 @@ import { SectionHeader } from "./SectionHeader";
 import { ProjectCard } from "./ProjectCard";
 import { RepoActivity } from "./RepoActivity";
 import { Icon } from "./Icon";
-import { experiments, projects } from "@/data/content";
+import { projects } from "@/data/content";
+import { MoreProjects } from "./MoreProjects";
 import { links } from "@/lib/site";
 
 export function Projects() {
@@ -19,7 +20,7 @@ export function Projects() {
                 Six things you can <em>run today</em>.
               </>
             }
-            lede="All six are public: a repo, a live URL or an npm package. Every number traces back to a committed benchmark, a CI run or the registry. Expand a card for the problem, my role, the architecture and what was hard."
+            lede="Six case studies, then nine more projects below. All public: a repo, a live URL or an npm package. Every number traces back to a committed benchmark, a CI run or the registry. Expand a card for the problem, my role, the architecture and what was hard."
             aside={
               <a href={links.github} target="_blank" rel="noreferrer" className="btn">
                 <Icon name="github" className="w-4 h-4" />
@@ -48,28 +49,9 @@ export function Projects() {
           ))}
         </div>
 
-        <Reveal className="mt-14 md:mt-16">
-          <div className="grid gap-6 md:grid-cols-[220px_1fr] md:gap-12 border-t border-line pt-10">
-            <div>
-              <p className="kicker">Experiments</p>
-              <p className="mt-3 text-sm text-fg-dim leading-relaxed">
-                Smaller public repos, pinned on GitHub and described in their own words.
-              </p>
-            </div>
-            <ul className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
-              {experiments.map((x) => (
-                <li key={x.name} className="flex flex-col gap-1">
-                  <a href={x.href} target="_blank" rel="noreferrer" className="font-mono text-sm text-fg underline-link w-fit inline-flex items-center gap-1.5">
-                    {x.name}
-                    <Icon name="arrowUpRight" className="w-3.5 h-3.5 text-fg-faint" />
-                  </a>
-                  <p className="text-[13px] text-fg-dim leading-relaxed">{x.description}</p>
-                  {x.note && <p className="font-mono text-[11px] text-fg-faint">{x.note}</p>}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Reveal>
+        <div className="mt-14 md:mt-20">
+          <MoreProjects />
+        </div>
       </div>
     </section>
   );

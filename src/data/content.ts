@@ -276,28 +276,117 @@ export const projects: Project[] = [
   },
 ];
 
-/** Smaller public experiments, listed with the one-line descriptions from their GitHub pages. */
-export const experiments: { name: string; description: string; href: string; note?: string }[] = [
+/* ------------------------------------------------------------------ */
+/* More projects — the rest of the public, non-fork repos. Curated by  */
+/* hand; descriptions are the repos' own. Previews are real screenshots */
+/* of the live apps; projects without a UI get an honest text tile.     */
+/* ------------------------------------------------------------------ */
+
+export type Audience = "humans" | "agents";
+
+export type MoreProject = {
+  name: string;
+  description: string;
+  language: string;
+  kind: string;
+  audience: Audience[];
+  repo: string;
+  live?: string;
+  note?: string;
+  preview?: { src: string; alt: string; width: number; height: number };
+};
+
+export const moreProjects: MoreProject[] = [
   {
-    name: "agentlens",
-    description: "Zero-dependency tracing and waterfall visualiser for AI agent tool calls: latency, tokens, cost, nesting, errors.",
-    href: "https://github.com/edgeorgie/agentlens",
-    note: "v0.1.0 · live viewer at agentlens-nine.vercel.app · not on npm yet",
+    name: "repoask",
+    description: "Ask any public GitHub repo a question. Local embeddings in the browser, answers cite exact lines.",
+    language: "TypeScript",
+    kind: "Web app + MCP",
+    audience: ["humans", "agents"],
+    repo: "https://github.com/edgeorgie/repoask",
+    live: "https://repoask.vercel.app",
+    note: "MiniLM embeddings via Transformers.js, in the browser; /api/mcp for agents",
+    preview: { src: "/previews/repoask.webp", alt: "repoask web app: a field to enter a public GitHub repository and ask it questions, answers cite exact lines.", width: 1280, height: 800 },
   },
   {
-    name: "codereel",
-    description: "A browser-based editor for animated code and devlog videos. No install needed.",
-    href: "https://github.com/edgeorgie/codereel",
-  },
-  {
-    name: "errorlens",
-    description: "Screenshot an error and a vision model explains it, lists likely causes and suggests a fix.",
-    href: "https://github.com/edgeorgie/errorlens",
+    name: "issue-scout",
+    description: "Find open source issues you can actually fix, scored by repo health and contribution policy.",
+    language: "TypeScript",
+    kind: "Web app",
+    audience: ["humans"],
+    repo: "https://github.com/edgeorgie/issue-scout",
+    live: "https://issue-scout-seven.vercel.app",
+    note: "Next.js 16 + React 19; flags each project's stance on AI-assisted contributions",
+    preview: { src: "/previews/issue-scout.webp", alt: "issue-scout landing page with a GitHub username field and a Scout button.", width: 1280, height: 800 },
   },
   {
     name: "recall-local",
-    description: "Search your own notes by meaning with local embeddings; nothing leaves the browser.",
-    href: "https://github.com/edgeorgie/recall-local",
+    description: "Search your own notes by meaning. Local embeddings, a memory map of your notes, nothing leaves the browser.",
+    language: "TypeScript",
+    kind: "Web app",
+    audience: ["humans"],
+    repo: "https://github.com/edgeorgie/recall-local",
+    live: "https://recall-local.vercel.app",
+    preview: { src: "/previews/recall-local.webp", alt: "recall-local home screen: semantic search over your notes with a zoomable memory map.", width: 1280, height: 800 },
+  },
+  {
+    name: "codereel",
+    description: "Browser-based editor for animated code and devlog videos. No install.",
+    language: "TypeScript",
+    kind: "Web app",
+    audience: ["humans"],
+    repo: "https://github.com/edgeorgie/codereel",
+    live: "https://codereel.vercel.app",
+    note: "client-side only, no backend; exports 16:9, 9:16, 1:1 and 4:5",
+    preview: { src: "/previews/codereel.webp", alt: "codereel editor: code on the left, an animated video preview on the right.", width: 1280, height: 800 },
+  },
+  {
+    name: "errorlens",
+    description: "Paste a screenshot of an error and get a plain explanation, likely causes and the fix from a vision model.",
+    language: "TypeScript",
+    kind: "Web app",
+    audience: ["humans"],
+    repo: "https://github.com/edgeorgie/errorlens",
+    live: "https://errorlens-one.vercel.app",
+    preview: { src: "/previews/errorlens.webp", alt: "errorlens: drop zone for an error screenshot that returns an explanation, likely causes and a fix.", width: 1280, height: 800 },
+  },
+  {
+    name: "agentlens",
+    description: "Zero-dependency tracing + waterfall visualizer for AI agent tool calls: latency, tokens, cost, nesting, errors.",
+    language: "TypeScript",
+    kind: "Tracer + viewer",
+    audience: ["agents", "humans"],
+    repo: "https://github.com/edgeorgie/agentlens",
+    live: "https://agentlens-nine.vercel.app",
+    note: "v0.1.0; Node builtins only; not on npm yet (install from GitHub)",
+    preview: { src: "/previews/agentlens.webp", alt: "agentlens viewer showing the example trace as a waterfall of nested tool calls with latency and token columns.", width: 1280, height: 800 },
+  },
+  {
+    name: "budget-keeper",
+    description: "Cost-governed multi-step agent: hard per-run USD budget enforced mid-stream at the token level, automatic model-tier routing, kill-switch with partial-result handoff.",
+    language: "TypeScript",
+    kind: "Agent + CLI",
+    audience: ["agents"],
+    repo: "https://github.com/edgeorgie/budget-keeper",
+    note: "runs locally with a live SSE dashboard; no public instance",
+  },
+  {
+    name: "trajectory-grader",
+    description: "Harness that scores agent tool-call trajectories (process quality) against a declarative rubric, not just final answers.",
+    language: "Python",
+    kind: "Eval harness + CLI",
+    audience: ["agents"],
+    repo: "https://github.com/edgeorgie/trajectory-grader",
+    note: "day-1, actively developing; Python 3.11+",
+  },
+  {
+    name: "retrieval-core",
+    description: "Shared TF-IDF chunking/scoring/prompt core extracted from repoask-mcp and ask-edgeorgie-mcp.",
+    language: "TypeScript",
+    kind: "Library",
+    audience: ["agents"],
+    repo: "https://github.com/edgeorgie/retrieval-core",
+    note: "installed as a git dependency by both MCP servers; not on npm",
   },
 ];
 

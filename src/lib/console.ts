@@ -3,7 +3,7 @@
  * network, fully unit-testable. Anything that is not a recognised command
  * is treated as a free-text question for the MCP engine.
  */
-import { experience, projects, skillGroups } from "@/data/content";
+import { experience, moreProjects, projects, skillGroups } from "@/data/content";
 import { links, person } from "@/lib/site";
 
 export type ConsoleLine = { text: string; href?: string; muted?: boolean };
@@ -12,7 +12,7 @@ export type CommandResult = { kind: "output"; command: string; lines: ConsoleLin
 
 export const COMMANDS: { name: string; description: string }[] = [
   { name: "help", description: "list commands" },
-  { name: "projects", description: "the six public projects, with links" },
+  { name: "projects", description: "all fifteen public projects, with links" },
   { name: "skills", description: "capability groups" },
   { name: "experience", description: "work history" },
   { name: "contact", description: "email, GitHub, LinkedIn" },
@@ -47,10 +47,11 @@ export function runCommand(input: string): CommandResult | null {
       return {
         kind: "output",
         command: cmd,
-        lines: projects.map((p) => ({
-          text: `${p.name.padEnd(20)} ${p.tierLabel}`,
-          href: `#project-${p.slug}`,
-        })),
+        lines: [
+          ...projects.map((p) => ({ text: `${p.name.padEnd(20)} ${p.tierLabel}`, href: `#project-${p.slug}` })),
+          { text: "more:", muted: true },
+          ...moreProjects.map((p) => ({ text: `${p.name.padEnd(20)} ${p.kind} · ${p.audience.join(" + ")}`, href: `#repo-${p.name}` })),
+        ],
       };
     case "skills":
       return {
