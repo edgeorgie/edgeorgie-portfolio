@@ -22,6 +22,19 @@ function getServerSnapshot() {
   return true;
 }
 
+/**
+ * Live `prefers-reduced-motion: reduce` subscription.
+ *
+ * Shared so every animation on the site reads the preference the same way,
+ * with the same safety property: the server/first-paint snapshot is
+ * "reduced motion ON", so the guaranteed-safe branch is the static,
+ * fully-visible one. See the long note in `Reveal` below for why
+ * framer-motion's own `useReducedMotion()` is not used here.
+ */
+export function usePrefersReducedMotion() {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
+
 export function Reveal({
   children,
   delay = 0,
@@ -58,11 +71,7 @@ export function Reveal({
   // (the plain, fully-visible `<div>` branch) so the guaranteed-safe state
   // is never an invisible one — the animated `motion.div` is strictly
   // opt-in once the client confirms the real OS preference.
-  const prefersReducedMotion = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getServerSnapshot,
-  );
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   if (prefersReducedMotion) {
     return <div className={className}>{children}</div>;

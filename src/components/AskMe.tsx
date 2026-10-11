@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import posthog from "posthog-js";
-import { Reveal } from "./Reveal";
+import { Reveal, usePrefersReducedMotion } from "./Reveal";
 
 const MCP_CONFIG = `{
   "mcpServers": {
@@ -55,14 +55,29 @@ function StreamingAnswer({ text, onDone }: { text: string; onDone?: () => void }
   const words = text.split(/(\s+)/);
   const [count, setCount] = useState(0);
 
+  // Respect the OS-level `prefers-reduced-motion` preference (WCAG 2.3.3):
+  // a word-by-word reveal of a long answer is ~250 sequential renders of
+  // moving text, so reduced-motion users get the whole answer at once.
+  // Uses the same `useSyncExternalStore` hook as `Reveal`, whose
+  // server/first-paint snapshot defaults to reduced-motion ON — the safe,
+  // content-is-visible side to be wrong about. (No StreamingAnswer exists
+  // during SSR/hydration anyway: the transcript is empty until a visitor
+  // asks something, so by first mount the real preference is known.)
+  const prefersReducedMotion = usePrefersReducedMotion();
+
   // Reset the stream when `text` changes, using React's documented
-  // "adjust state during render" pattern rather than an effect. Doing this
-  // in an effect (setCount(0) in useEffect([text])) both trips
-  // react-hooks/set-state-in-effect and is genuinely wrong: the effect only
-  // runs *after* the render that already sliced the NEW text with the OLD
-  // count, so a text swap briefly paints the wrong number of words before
-  // snapping back. Adjusting during render re-renders before paint, so the
-  // intermediate state is never visible.
+  // "adjust state during render" pattern rather than an effect. The
+  // react-hooks/set-state-in-effect lint error this replaced was correct:
+  // `setCount(0)` inside `useEffect([text])` is the wrong pattern, because
+  // the reset lands only *after* a render has already sliced the new text
+  // with the stale count. Adjusting during render re-renders before paint.
+  //
+  // Note this branch is defensive and currently unreachable: the chat
+  // history is append-only, turns are keyed by index, and `turn.a.answer`
+  // is never mutated, so a new answer always mounts a *fresh*
+  // StreamingAnswer with count=0 rather than feeding changed `text` into a
+  // mounted one. It is kept so the component stays correct if it is ever
+  // reused with a `text` prop that does change in place.
   const [renderedText, setRenderedText] = useState(text);
   if (renderedText !== text) {
     setRenderedText(text);
@@ -70,17 +85,20 @@ function StreamingAnswer({ text, onDone }: { text: string; onDone?: () => void }
   }
 
   useEffect(() => {
-    if (count >= words.length) {
+    // No reveal timers at all under reduced motion — the full text is
+    // already rendered below; just report completion so the citation
+    // chips (gated on `streamed`) still appear.
+    if (prefersReducedMotion || count >= words.length) {
       onDone?.();
       return;
     }
     const t = setTimeout(() => setCount((c) => c + 1), 10 + Math.random() * 14);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [count, words.length]);
+  }, [count, words.length, prefersReducedMotion]);
 
-  const shown = words.slice(0, count).join("");
-  const done = count >= words.length;
+  const shown = prefersReducedMotion ? text : words.slice(0, count).join("");
+  const done = prefersReducedMotion || count >= words.length;
 
   return (
     <div className="prose-ask text-fg-dim text-sm md:text-base leading-relaxed">
