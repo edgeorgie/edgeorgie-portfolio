@@ -46,7 +46,7 @@ Copy `.env.local.example` to `.env.local`.
 | --- | --- |
 | `NEXT_PUBLIC_SITE_URL` | Canonical origin for metadata/OG/sitemap. Defaults to `https://www.itsedgeorgie.dev`. |
 | `NEXT_PUBLIC_WHATSAPP_NUMBER` | Overrides the WhatsApp number (digits; `+`, spaces and dashes are stripped). The owner's number is the code default. |
-| `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` | Product analytics. Unset → the SDK is never downloaded. |
+| `NEXT_PUBLIC_POSTHOG_KEY` | Product analytics (PostHog, cookieless, proxied through `/ingest`). Unset → the SDK is never downloaded. See `docs/POSTHOG_PLAN.md`. |
 | `GITHUB_TOKEN` (server only) | Raises the GitHub API rate limit for the "last push" line. Never sent to the client. |
 
 ## Scripts

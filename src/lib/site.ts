@@ -92,3 +92,22 @@ export function sectionNumber(id: SectionId): string {
   // "top" is 00; every real section counts from 01.
   return String(Math.max(0, idx)).padStart(2, "0");
 }
+
+/**
+ * Campaign parameters on links into the owner's own apps (all on vercel.app),
+ * so their analytics can attribute a visit to the portfolio without any
+ * cross-site identity. Other hosts and unparsable hrefs pass through.
+ */
+export function withUtm(href: string, medium = "card"): string {
+  try {
+    const url = new URL(href);
+    if (!url.hostname.endsWith(".vercel.app")) return href;
+    if (!url.searchParams.has("utm_source")) {
+      url.searchParams.set("utm_source", "portfolio");
+      url.searchParams.set("utm_medium", medium);
+    }
+    return url.toString();
+  } catch {
+    return href;
+  }
+}

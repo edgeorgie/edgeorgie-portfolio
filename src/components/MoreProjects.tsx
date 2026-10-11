@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { withUtm } from "@/lib/site";
 import Image from "next/image";
 import { Reveal } from "./Reveal";
 import { Icon } from "./Icon";
@@ -56,10 +57,13 @@ export function MoreProjects() {
               >
                 {p.preview ? (
                   <a
-                    href={p.live ?? p.repo}
+                    href={p.live ? withUtm(p.live) : p.repo}
                     target="_blank"
                     rel="noreferrer"
                     className="relative block aspect-[16/10] overflow-hidden rounded-lg border border-line bg-bg-soft"
+                    data-track="outbound_clicked"
+                    data-track-target={p.name}
+                    data-track-kind={p.live ? "live" : "repo"}
                     aria-label={`Open ${p.name} live (opens in a new tab)`}
                   >
                     <Image
@@ -105,12 +109,28 @@ export function MoreProjects() {
                   <span className="chip !px-2 !py-1 text-[10px]">
                     {p.kind} · {p.language}
                   </span>
-                  <a href={p.repo} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-fg underline-link">
+                  <a
+                    href={p.repo}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-fg underline-link"
+                    data-track="outbound_clicked"
+                    data-track-target={p.name}
+                    data-track-kind="repo"
+                  >
                     <Icon name="github" className="w-3.5 h-3.5 text-fg-dim" />
                     Source<span className="sr-only"> (opens in a new tab)</span>
                   </a>
                   {p.live && (
-                    <a href={p.live} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-fg underline-link">
+                    <a
+                      href={withUtm(p.live)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 text-fg underline-link"
+                      data-track="outbound_clicked"
+                      data-track-target={p.name}
+                      data-track-kind="live"
+                    >
                       <Icon name="arrowUpRight" className="w-3.5 h-3.5 text-fg-dim" />
                       Live<span className="sr-only"> (opens in a new tab)</span>
                     </a>

@@ -141,6 +141,15 @@ test.describe("portfolio", () => {
     }
   });
 
+  test("analytics stays off without a key: no SDK, no /ingest traffic", async ({ page }) => {
+    const requests: string[] = [];
+    page.on("request", (r) => requests.push(r.url()));
+    await page.goto("/");
+    await scrollThrough(page);
+    await page.locator("#contact a[href^='mailto:']").first().click();
+    expect(requests.filter((u) => u.includes("/ingest/") || u.toLowerCase().includes("posthog"))).toEqual([]);
+  });
+
   test("console runs slash commands offline", async ({ page }) => {
     await page.goto("/#ask-me");
     await hydrated(page);
