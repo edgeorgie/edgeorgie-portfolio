@@ -51,14 +51,13 @@ jobs:
       # SCOPE: `--omit=dev`. Dev dependencies can still affect what ships
       # (tailwindcss/typescript OUTPUT is the artifact). `npm ci` pins every
       # install to the lockfile and `.github/dependabot.yml` keeps those pins
-      # under weekly review with repo-level vulnerability alerts enabled, but
-      # both only react to published advisories against known versions — a
-      # build-time package that is malicious before any advisory exists still
-      # gets through. That gap is narrowed here, not closed.
-      # The only advisories present resolve to the
-      # `eslint-config-next` lint subtree (fast-glob -> micromatch -> braces),
-      # which runs the linter and emits nothing; the only npm fix is a major
-      # downgrade of eslint-config-next. The production tree is 0 findings.
+      # under weekly review, but both only react to published advisories
+      # against known versions — a build-time package that is malicious before
+      # any advisory exists still gets through. That gap is narrowed here, not
+      # closed. The only advisories present resolve to the `eslint-config-next`
+      # lint subtree (fast-glob -> micromatch -> braces), which runs the linter
+      # and emits nothing; the only npm fix is a major downgrade of
+      # eslint-config-next. The production tree is 0 findings.
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 
