@@ -1,7 +1,19 @@
 /**
- * Thin analytics facade (PostHog), shared shape across the owner's apps.
+ * Thin analytics facade over TWO independent sinks, because they fail
+ * independently and are configured independently:
  *
- * - No key → `track()` is a no-op and posthog-js is never downloaded.
+ *   - Vercel Web Analytics — always on in a Vercel deployment, needs no key
+ *     and no env var. It is enabled on this project with data flowing.
+ *   - PostHog — opt-in via NEXT_PUBLIC_POSTHOG_KEY, for funnels and retention
+ *     Vercel does not do.
+ *
+ * Until this split existed, `track()` returned early whenever the PostHog key
+ * was absent — which is the deployed state — so every custom event on the site
+ * was dropped on the floor while Vercel Analytics sat enabled and received
+ * nothing but pageviews. The gate now belongs to each sink, not to the facade.
+ *
+ * - No PostHog key → posthog-js is never downloaded (the bundle check in
+ *   ci.yml still holds), but events still reach Vercel.
  * - With a key → the SDK is dynamically imported after hydration, off the
  *   critical path; events queued before it loads are flushed.
  * - Cookieless: no cookies, no storage, no consent banner. PostHog derives
@@ -20,6 +32,27 @@ import type { PostHog } from "posthog-js";
 type Props = Record<string, string | number | boolean | null | undefined>;
 
 export const analyticsEnabled = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY);
+/**
+ * Vercel Web Analytics needs no key: the <Analytics /> component defines
+ * `window.va` (a queue stub until its script loads, then the real sender).
+ * Calling it is safe before the script arrives — the stub buffers into
+ * `window.vaq` and the script drains it. Checking for the function rather than
+ * an env var is what makes this sink independent of PostHog's configuration.
+ */
+function vercelTrack(event: string, props?: Props): void {
+  if (typeof window === "undefined") return;
+  const va = (window as unknown as { va?: (...a: unknown[]) => void }).va;
+  if (typeof va !== "function") return;
+  // Vercel rejects nested objects and nullish values; send scalars only.
+  const data: Record<string, string | number | boolean> = {};
+  for (const [k, v] of Object.entries(props ?? {})) {
+    if (v !== null && v !== undefined) data[k] = v;
+  }
+  // `$pageview` is PostHog's name for something @vercel/analytics records on
+  // its own; forwarding it would double-count every page view.
+  if (event.startsWith("$")) return;
+  va("event", { name: event, data: { app: APP, ...data } });
+}
 /** The `app` super property; the same PostHog project holds every app. */
 export const APP = "portfolio";
 /** Same-origin path proxied to PostHog by next.config.ts rewrites. */
@@ -74,6 +107,9 @@ export function loadAnalytics(): Promise<PostHog | null> {
 
 /** Fire-and-forget event. Safe to call anywhere, in any environment. */
 export function track(event: string, props?: Props): void {
+  // Vercel first: it is unconditional in a deployment and must not be gated
+  // behind PostHog's key, which is the bug this ordering fixes.
+  vercelTrack(event, props);
   if (!analyticsEnabled) return;
   if (client) {
     client.capture(event, props);
