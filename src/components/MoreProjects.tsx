@@ -22,10 +22,17 @@ const COUNT_WORD = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven",
  * profile README — are deliberately left out. On phones the list shows
  * three cards and a toggle; from `sm` up every card is always visible, so
  * the toggle is purely a small-screen convenience.
+ *
+ * `headingLevel` exists because this block sits under the Work section's <h2>
+ * on the home page but directly under the <h1> on /projects. Hardcoding h3/h4
+ * made /projects skip from h1 to h3, which breaks the document outline screen
+ * readers navigate by.
  */
-export function MoreProjects() {
+export function MoreProjects({ headingLevel = 3 }: { headingLevel?: 2 | 3 }) {
   const [expanded, setExpanded] = useState(false);
   const hiddenCount = moreProjects.length - MOBILE_VISIBLE;
+  const SectionHeading = `h${headingLevel}` as "h2" | "h3";
+  const CardHeading = `h${headingLevel + 1}` as "h3" | "h4";
 
   return (
     <div className="border-t border-line pt-12">
@@ -33,9 +40,9 @@ export function MoreProjects() {
         <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-end">
           <div>
             <p className="kicker">More projects</p>
-            <h3 className="display text-3xl sm:text-4xl mt-4">
+            <SectionHeading className="display text-3xl sm:text-4xl mt-4">
               {COUNT_WORD[moreProjects.length] ?? moreProjects.length} more, for <em>humans and agents</em>.
-            </h3>
+            </SectionHeading>
           </div>
           <p className="text-sm text-fg-dim max-w-sm md:text-right">
             The public, non-fork repos that aren&rsquo;t a case study above, each described close to the repo&rsquo;s own
@@ -91,9 +98,9 @@ export function MoreProjects() {
                 )}
 
                 <div className="flex items-center justify-between gap-2">
-                  <h4 id={`repo-${p.name}-title`} className="font-mono text-base text-fg tracking-tight">
+                  <CardHeading id={`repo-${p.name}-title`} className="font-mono text-base text-fg tracking-tight">
                     {p.name}
-                  </h4>
+                  </CardHeading>
                   <span className="flex gap-1">
                     {p.audience.map((a) => (
                       <span key={a} className={`chip !px-2 !py-1 text-[10px] ${a === "agents" ? "chip-accent" : ""}`}>

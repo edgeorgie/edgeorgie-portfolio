@@ -7,6 +7,40 @@ import { moreProjects } from "@/data/content";
 import { SITE_URL, links } from "@/lib/site";
 
 /**
+ * A CollectionPage + ItemList describing the actual repos, rather than letting
+ * the route show nothing but the site-wide Person/WebSite graph from the
+ * layout. Built from `moreProjects`, so the structured data cannot drift from
+ * what the page renders.
+ */
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "@id": `${SITE_URL}/projects#page`,
+  url: `${SITE_URL}/projects`,
+  name: "All projects — Edwin Jorge",
+  isPartOf: { "@id": `${SITE_URL}/#website` },
+  about: { "@id": `${SITE_URL}/#person` },
+  inLanguage: "en",
+  mainEntity: {
+    "@type": "ItemList",
+    numberOfItems: moreProjects.length,
+    itemListElement: moreProjects.map((p, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      item: {
+        "@type": "SoftwareSourceCode",
+        name: p.name,
+        description: p.description,
+        programmingLanguage: p.language,
+        codeRepository: p.repo,
+        author: { "@id": `${SITE_URL}/#person` },
+        ...(p.live ? { url: p.live } : {}),
+      },
+    })),
+  },
+};
+
+/**
  * The secondary projects live on their own route rather than inline on the
  * home page. The Work section carried 47% of the site's words, which buried
  * the six case studies that are the actual evidence — the nine smaller repos
@@ -30,6 +64,11 @@ export const metadata: Metadata = {
 export default function ProjectsPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        // JSON.stringify output is escaped so a "<" can never close the tag.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+      />
       <Nav />
       <main id="main" className="relative z-0">
         <section className="relative py-24 md:py-32 scroll-mt-16">
@@ -69,7 +108,7 @@ export default function ProjectsPage() {
             </div>
 
             <div className="mt-16 md:mt-20">
-              <MoreProjects />
+              <MoreProjects headingLevel={2} />
             </div>
           </div>
         </section>
