@@ -81,12 +81,20 @@ function SectionViewTracker() {
   return null;
 }
 
-/** Renders nothing; the whole tree is skipped without a key. */
+/**
+ * Renders nothing. The trackers mount regardless of the PostHog key, because
+ * `track()` also feeds Vercel Web Analytics, which needs no key — gating the
+ * whole tree on `analyticsEnabled` is what previously meant that in the
+ * deployed (no-key) state no listener existed at all and no custom event was
+ * ever recorded by either sink.
+ *
+ * PageviewTracker stays gated: @vercel/analytics records page views itself, so
+ * mounting it without PostHog would only double-count.
+ */
 export function Analytics() {
-  if (!analyticsEnabled) return null;
   return (
     <Suspense fallback={null}>
-      <PageviewTracker />
+      {analyticsEnabled && <PageviewTracker />}
       <InteractionTracker />
       <SectionViewTracker />
     </Suspense>
