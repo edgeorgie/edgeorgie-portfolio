@@ -273,17 +273,21 @@ test.describe("/projects", () => {
     await expect(link).toContainText(String(count));
   });
 
-  test("header section links are not dead anchors off the home page", async ({ page }) => {
+  test("header section links are not dead anchors off the home page", async ({ page, isMobile }) => {
     await page.goto("/projects");
     const hrefs = await page
       .locator("header a[href*='#']")
       .evaluateAll((els) => els.map((e) => e.getAttribute("href") ?? ""));
     expect(hrefs.length).toBeGreaterThan(0);
-    // A bare "#work" scrolls nowhere here; it must be "/#work".
+    // A bare "#work" scrolls nowhere here; it must be "/#work". This holds for
+    // the markup at any viewport, since both copies are always in the DOM.
     expect(hrefs.filter((h) => h.startsWith("#"))).toEqual([]);
 
-    // Following one must actually land on the home page at that section.
-    await page.locator('header a[href="/#work"]').first().click();
+    // Following one must actually land on the home page at that section. The
+    // header renders a desktop row AND a collapsed mobile menu, so the link has
+    // to be made visible at this viewport before it can be clicked.
+    if (isMobile) await page.getByRole("button", { name: /open menu/i }).click();
+    await page.locator('header a[href="/#work"]:visible').first().click();
     await page.waitForURL(/\/#work$/);
     await expect(page.locator("section#work")).toBeVisible();
   });
