@@ -1,11 +1,23 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Icon } from "./Icon";
 import { links, sections } from "@/lib/site";
 
 const NAV_IDS = new Set(["work", "skills", "experience", "ai-workflow", "ask-me", "contact"]);
 const NAV = sections.filter((s) => NAV_IDS.has(s.id));
+
+/**
+ * Section anchors only resolve on the home page. On any other route (/projects)
+ * a bare "#work" scrolls to nothing, so the whole header silently goes dead;
+ * prefixing with "/" navigates home and then jumps to the section.
+ */
+function useSectionHref() {
+  const pathname = usePathname();
+  const onHome = pathname === "/";
+  return (id: string) => (onHome ? `#${id}` : `/#${id}`);
+}
 
 /**
  * Fixed header. CSS-only transitions (no animation library): visible in the
@@ -17,6 +29,7 @@ export function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
+  const sectionHref = useSectionHref();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16);
@@ -53,7 +66,7 @@ export function Nav() {
       }`}
     >
       <nav aria-label="Primary" className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 h-16 flex items-center justify-between gap-3">
-        <a href="#top" className="font-mono text-sm text-fg-dim hover:text-accent transition-colors shrink-0">
+        <a href={sectionHref("top")} className="font-mono text-sm text-fg-dim hover:text-accent transition-colors shrink-0">
           EJ<span className="text-accent">.</span>
           <span className="sr-only"> Edwin Jorge, back to top</span>
         </a>
@@ -62,7 +75,7 @@ export function Nav() {
           {NAV.map((item) => (
             <a
               key={item.id}
-              href={`#${item.id}`}
+              href={sectionHref(item.id)}
               className="font-mono text-[13px] text-fg-dim hover:text-fg transition-colors tracking-wide whitespace-nowrap"
             >
               <span className="lg:hidden">{item.short}</span>
@@ -124,7 +137,7 @@ export function Nav() {
             {NAV.map((item) => (
               <a
                 key={item.id}
-                href={`#${item.id}`}
+                href={sectionHref(item.id)}
                 onClick={closeMenu}
                 tabIndex={open ? 0 : -1}
                 className="font-mono text-base text-fg-dim hover:text-fg transition-colors tracking-wide py-2"

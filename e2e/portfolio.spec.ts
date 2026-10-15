@@ -247,3 +247,71 @@ test.describe("portfolio", () => {
     ).toEqual([]);
   });
 });
+
+/**
+ * The secondary repos moved off the home page onto /projects, which trimmed the
+ * Work section from 47% to 41% of the page's words. Two things can silently
+ * break in that split and neither is visible on the home page alone: the cards
+ * can fail to render on the new route, and the header's section anchors — bare
+ * "#work" etc. — resolve to nothing on any route that is not "/".
+ */
+test.describe("/projects", () => {
+  test("renders every secondary project, and the home page no longer does", async ({ page }) => {
+    await page.goto("/projects");
+    const cards = page.locator("#more-projects > li");
+    const count = await cards.count();
+    expect(count).toBeGreaterThan(0);
+    await expect(page.locator("h1")).toBeVisible();
+
+    // The same list must not also be inline on the home page, or the split
+    // achieved nothing and the two copies can drift.
+    await page.goto("/");
+    expect(await page.locator("#more-projects > li").count()).toBe(0);
+    // ...but the home page must still link to it, with the real count.
+    const link = page.locator('a[href="/projects"]').first();
+    await expect(link).toBeVisible();
+    await expect(link).toContainText(String(count));
+  });
+
+  test("header section links are not dead anchors off the home page", async ({ page, isMobile }) => {
+    await page.goto("/projects");
+    const hrefs = await page
+      .locator("header a[href*='#']")
+      .evaluateAll((els) => els.map((e) => e.getAttribute("href") ?? ""));
+    expect(hrefs.length).toBeGreaterThan(0);
+    // A bare "#work" scrolls nowhere here; it must be "/#work". This holds for
+    // the markup at any viewport, since both copies are always in the DOM.
+    expect(hrefs.filter((h) => h.startsWith("#"))).toEqual([]);
+
+    // Following one must actually land on the home page at that section. The
+    // header renders a desktop row AND a collapsed mobile menu, so the link has
+    // to be made visible at this viewport before it can be clicked.
+    if (isMobile) await page.getByRole("button", { name: /open menu/i }).click();
+    await page.locator('header a[href="/#work"]:visible').first().click();
+    await page.waitForURL(/\/#work$/);
+    await expect(page.locator("section#work")).toBeVisible();
+  });
+
+  test("home page anchors stay relative, so they do not reload the page", async ({ page }) => {
+    await page.goto("/");
+    const hrefs = await page
+      .locator("header a[href*='#']")
+      .evaluateAll((els) => els.map((e) => e.getAttribute("href") ?? ""));
+    expect(hrefs.filter((h) => h.startsWith("/#"))).toEqual([]);
+  });
+
+  test("accessibility: no axe violations on /projects", async ({ page }) => {
+    await page.goto("/projects");
+    await scrollThrough(page);
+    await settle(page);
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+    expect(
+      results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(" ")).join(", ")})`)
+    ).toEqual([]);
+  });
+
+  test("is listed in the sitemap, so it is indexable", async ({ request }) => {
+    const xml = await (await request.get("/sitemap.xml")).text();
+    expect(xml).toContain("/projects");
+  });
+});
