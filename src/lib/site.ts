@@ -29,6 +29,17 @@ function resolveSiteUrl(): string {
 
 export const SITE_URL = resolveSiteUrl();
 
+/**
+ * IndexNow ownership key. Public by design: the protocol verifies ownership
+ * by fetching this value at `{SITE_URL}/{key}.txt`, so it is a URL, not a
+ * credential. The matching file lives in public/ and the two must agree —
+ * src/lib/indexnow.test.ts fails if they drift.
+ *
+ * Covers Bing, Yandex, Seznam and Naver, which share one endpoint. Google
+ * does not participate in IndexNow; it still needs Search Console.
+ */
+export const INDEXNOW_KEY = "e53f9a5baf71a041eef1c90ba54a6fe7";
+
 export const person = {
   name: "Edwin Jorge",
   handle: "edgeorgie",
