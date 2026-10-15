@@ -3,5 +3,8 @@ import { SITE_URL } from "@/lib/site";
 
 // No request-time APIs and no Date.now(), so this is prerendered at build.
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [{ url: `${SITE_URL}/`, changeFrequency: "monthly", priority: 1 }];
+  return [
+    { url: `${SITE_URL}/`, changeFrequency: "monthly", priority: 1 },
+    { url: `${SITE_URL}/projects`, changeFrequency: "monthly", priority: 0.8 },
+  ];
 }
