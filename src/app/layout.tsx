@@ -71,6 +71,16 @@ export const metadata: Metadata = {
       "Full-stack engineer across web, native mobile and smart TV, with live AI-agent projects you can run today.",
   },
   robots: { index: true, follow: true },
+  /**
+   * Search Console / Bing verification without a redeploy-to-edit-code cycle:
+   * set GOOGLE_SITE_VERIFICATION (and optionally BING_SITE_VERIFICATION) in
+   * the Vercel project and the meta tag appears. Omitted entirely when unset,
+   * so no empty verification tag is ever emitted.
+   */
+  verification: {
+    ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
+    ...(process.env.BING_SITE_VERIFICATION ? { other: { "msvalidate.01": process.env.BING_SITE_VERIFICATION } } : {}),
+  },
 };
 
 export const viewport: Viewport = {
