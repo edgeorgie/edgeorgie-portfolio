@@ -85,6 +85,23 @@ describe("document outline", () => {
   });
 });
 
+describe("search console verification", () => {
+  const layout = src("app/layout.tsx");
+
+  it("reads the token from the environment, never hardcoded", () => {
+    // A token committed to a public repo is both a leak and a redeploy away
+    // from being wrong; Vercel env vars make it a settings change.
+    expect(layout).toContain("GOOGLE_SITE_VERIFICATION");
+    expect(layout).not.toMatch(/google:\s*["'][A-Za-z0-9_-]{10,}["']/);
+  });
+
+  it("emits nothing when the variable is unset", () => {
+    // An empty verification tag is worse than none: Google reads it as a
+    // failed claim on the property.
+    expect(layout).toMatch(/process\.env\.GOOGLE_SITE_VERIFICATION\s*\?/);
+  });
+});
+
 describe("sitemap", () => {
   it("lists every indexable route", () => {
     const code = src("app/sitemap.ts");
