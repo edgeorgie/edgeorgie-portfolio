@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useId, useSyncExternalStore } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { lengthBucket, track } from "@/lib/analytics";
+import type { AskResult } from "@/lib/ask-me";
 import { runCommand, type ConsoleLine } from "@/lib/console";
 import { links } from "@/lib/site";
 import { Reveal } from "./Reveal";
@@ -18,14 +19,10 @@ const MCP_CONFIG = `{
   }
 }`;
 
-type Citation = { rank: number; source: string; startLine: number; endLine: number; score: number; excerpt: string };
-
-type AskResult = {
-  question: string;
-  answer: string;
-  answerMode: "llm" | "deterministic" | "synthesis-failed";
-  model?: string;
-  citations: Citation[];
+const MODE_LABEL: Record<AskResult["answerMode"], string> = {
+  llm: "llm",
+  deterministic: "cited excerpts",
+  "synthesis-failed": "cited excerpts · model unavailable",
 };
 
 type Turn =
@@ -170,7 +167,9 @@ export function AskMe() {
               ? "Answers are generated prose from a real model, grounded strictly in the cited excerpts. See the answerMode badge under each reply."
               : lastAnswerMode === "deterministic"
                 ? "No LLM key is configured on the upstream deployment right now, so answers are direct cited excerpts. Retrieval and citations are real either way."
-                : "Ask a question to see the live answerMode: generated prose if a model key is active upstream, or a direct cited excerpt otherwise."}
+                : lastAnswerMode === "synthesis-failed"
+                  ? "The answer model is unavailable upstream right now, so replies fall back to the cited excerpts it would have used. Retrieval and citations are real either way."
+                  : "Ask a question to see the live answerMode: generated prose if a model key is active upstream, or a direct cited excerpt otherwise."}
           </p>
         </Reveal>
 
@@ -256,7 +255,9 @@ export function AskMe() {
                             }}
                           />
                           <div className="flex items-center gap-2 mt-2 flex-wrap">
-                            <span className="chip">{turn.a.answerMode}</span>
+                            <span className="chip" title={`answerMode: ${turn.a.answerMode}`}>
+                              {MODE_LABEL[turn.a.answerMode] ?? turn.a.answerMode}
+                            </span>
                             {turn.a.model && <span className="font-mono text-[11px] text-fg-faint">{turn.a.model}</span>}
                           </div>
                           {turn.a.citations?.length > 0 && turn.streamed && (

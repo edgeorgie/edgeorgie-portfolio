@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { toClientResult } from "@/lib/ask-me";
 
 /**
  * Server-side proxy to ask-edgeorgie-mcp's human-facing REST route
@@ -126,8 +127,18 @@ export async function POST(req: Request) {
       );
     }
 
-    const data = await upstream.json();
-    return NextResponse.json(data, { headers: { "Cache-Control": "no-store" } });
+    // Narrowed to the documented contract rather than forwarded verbatim:
+    // see src/lib/ask-me.ts for the provider-error leak this closed.
+    const result = toClientResult(await upstream.json().catch(() => null));
+    if (!result) {
+      console.error("[ask-me] upstream returned an unexpected body shape");
+      return NextResponse.json({ error: "The answer service returned an unexpected response." }, { status: 502 });
+    }
+    if (result.answerMode === "synthesis-failed") {
+      // Visible in Vercel's runtime logs; the visitor still gets the cited excerpts.
+      console.warn(`[ask-me] upstream synthesis failed: ${result.fallbackReason ?? "unknown"}`);
+    }
+    return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     const aborted = (err as Error).name === "AbortError";
     return NextResponse.json(
